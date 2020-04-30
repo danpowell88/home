@@ -1,0 +1,7 @@
+ensuite:
+  class: Ensuite
+  MotionSensors:
+    - binary_sensor.ensuite_motion_occupancy
+    - binary_sensor.ensuite_shower_motion_occupancy
+  Lights:
+    - light.ensuite

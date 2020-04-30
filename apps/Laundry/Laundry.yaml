@@ -1,0 +1,9 @@
+gym:
+  class: Laundry
+  MotionSensors:
+    - binary_sensor.gym_motion_occupancy
+    - binary_sensor.gym_2_motion_occupancy
+  Lights:
+    - light.gym_light
+  EntryPoints:
+    - binary_sensor.gym_door_contact

@@ -1,0 +1,6 @@
+toilet:
+  class: Toilet
+  MotionSensors:
+    - binary_sensor.toilet_motion_occupancy
+  Lights:
+    - light.toilet

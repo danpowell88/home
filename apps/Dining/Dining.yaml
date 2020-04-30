@@ -1,0 +1,7 @@
+dining:
+  class: Dining
+  MotionSensors:
+    - binary_sensor.dining_table_motion_occupancy
+    - binary_sensor.dining_table_2_motion_occupancy
+  Lights:
+    - light.dining

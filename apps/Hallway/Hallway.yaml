@@ -1,0 +1,8 @@
+hallway:
+  class: Hallway
+  MotionSensors:
+    - binary_sensor.hallway_occupancy
+    - binary_sensor.hallway_motion_2_occupancy
+    - binary_sensor.hallway_motion_3_occupancy
+  Lights:
+    - light.hallway

@@ -1,0 +1,11 @@
+garage:
+  class: GarageApp
+  MotionSensors:
+    - binary_sensor.garage_motion_occupancy
+    - binary_sensor.garage_2_motion_occupancy
+  Lights:
+    - light.garage_tasmota
+  EntryPoints:
+    - binary_sensor.garage_backyard_door_contact
+    - binary_sensor.garage_entry_door_contact
+    - cover.garage_door

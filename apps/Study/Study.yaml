@@ -1,0 +1,10 @@
+study:
+  class: StudyApp
+  MotionSensors:
+    - binary_sensor.office_motion_occupancy
+  PowerSensors:
+    - binary_sensor.study_pc_on
+  Lights:
+    - light.study
+  PcUsage: binary_sensor.study_pc_on
+  MonitorSwitch: switch.office_pc_monitors
