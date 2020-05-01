@@ -37,6 +37,7 @@ public class StudyApp : RoomApp
 
     protected override bool IndoorRoom => true;
 
+    protected override string RoomPrefix => "study";
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(10);
 
 }

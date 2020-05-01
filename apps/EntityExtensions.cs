@@ -1,25 +1,22 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
 
 public static class EntityExtensions
 {
-    public static bool AllStatesAre(this NetDaemonApp app, IEnumerable<string> entities, string desiredState)
+    public static bool AllStatesAre(this NetDaemonApp app, Func<IEntityProperties, bool> entityFilter, string desiredState)
     {
-        return entities.ToList()
-            .All(e => (app.GetState(e) != null ? (string?) app.GetState(e)?.State : null) == desiredState);
+       return app.State.Where(entityFilter).All(e => e.State == desiredState);
     }
 
-    public static bool AllStatesAre(this NetDaemonApp app, IEnumerable<string> entities, params string[] desiredStates)
+    public static bool AllStatesAre(this NetDaemonApp app, Func<IEntityProperties, bool> entityFilter, params string[] desiredStates)
     {
-        return entities.ToList()
-            .All(e =>  desiredStates.Contains(app.GetState(e) != null ? (string?)app.GetState(e)!.State! : string.Empty));
+        return app.State.Where(entityFilter).All(e =>  desiredStates.ToList().Contains(e.State));
     }
 
-    public static bool AnyStatesAre(this NetDaemonApp app, IEnumerable<string> entities, string desiredState)
+    public static bool AnyStatesAre(this NetDaemonApp app, Func<IEntityProperties, bool> entityFilter, string desiredState)
     {
-        return entities
-            .ToList()
-            .Any(e => (app.GetState(e) != null ? (string?) app.GetState(e)?.State : null) == desiredState);
+        return app.State.Where(entityFilter).Any(e => e.State == desiredState);
     }
 }

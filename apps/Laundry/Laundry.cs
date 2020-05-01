@@ -6,6 +6,7 @@ public class LaundryApp : RoomApp
 {
     protected override bool IndoorRoom => true;
 
+    protected override string RoomPrefix => "laundry";
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(5);
 
 }

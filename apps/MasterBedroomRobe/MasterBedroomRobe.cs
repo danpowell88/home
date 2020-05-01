@@ -4,5 +4,6 @@ public class MasterBedroomRobe : RoomApp
 {
     protected override bool IndoorRoom => true;
 
+    protected override string RoomPrefix => "masterbedroomrobe";
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(3);
 }

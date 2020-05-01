@@ -3,12 +3,18 @@ using System.Threading.Tasks;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
 using System.Linq;
 using System;
-using Microsoft.Extensions.Logging;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Text.RegularExpressions;
+using System.Threading;
+using EnumsNET;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 
 public abstract class RoomApp : NetDaemonApp
 {
+    protected abstract string RoomPrefix { get; }
+
     protected virtual TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(3);
     protected virtual TimeSpan PowerSensorOffDebounce => TimeSpan.FromMinutes(5);
     protected virtual TimeSpan PowerSensorOnDebounce => TimeSpan.FromSeconds(30);
@@ -16,14 +22,14 @@ public abstract class RoomApp : NetDaemonApp
 
     protected abstract bool IndoorRoom { get; }
 
-    public IEnumerable<string>? MotionSensors { get; set; }
-    public IEnumerable<string>? PowerSensors { get; set; }
-    public IEnumerable<string>? MediaPlayerDevices { get; set; }
-    public IEnumerable<string>? EntryPoints { get; set; }
-    
-    protected virtual IEnumerable<string>? AllOccupancySensors => MotionSensors.Union(PowerSensors);
+    public Func<IEntityProperties, bool> MotionSensors => e => Regex.Match(e.EntityId, GetEntityRegex(EntityType.BinarySensor, DeviceType.Motion)).Success;
+    public Func<IEntityProperties, bool> PowerSensors => e => Regex.Match(e.EntityId, GetEntityRegex(EntityType.Switch, DeviceType.Power)).Success;
 
-    public IEnumerable<string>? Lights { get; set; }
+    public Func<IEntityProperties, bool> MediaPlayerDevices => e => Regex.Match(e.EntityId, GetEntityRegex(EntityType.MediaPlayer)).Success;
+    public Func<IEntityProperties, bool> Lights => e => Regex.Match(e.EntityId, GetEntityRegex(EntityType.Light)).Success;
+
+    public Func<IEntityProperties, bool> EntryPoints => e => Regex.Match(e.EntityId, GetEntityRegex(EntityType.BinarySensor, DeviceType.Door, DeviceType.Window)).Success;
+    protected virtual Func<IEntityProperties, bool> AllOccupancySensors => e => MotionSensors(e) && PowerSensors(e);
 
     protected ISchedulerResult? Timer;
 
@@ -35,12 +41,6 @@ public abstract class RoomApp : NetDaemonApp
 
     public override Task InitializeAsync()
     {
-        MotionSensors ??= new List<string>();
-        PowerSensors ??= new List<string>();
-        MediaPlayerDevices ??= new List<string>();
-        Lights ??= new List<string>();
-        EntryPoints ??= new List<string>();
-
         SetupOccupied();
         SetupUnoccupied();
 
@@ -51,115 +51,84 @@ public abstract class RoomApp : NetDaemonApp
 
     private void SetupUnoccupied()
     {
-        if (MotionSensors != null && MotionSensors.Any())
-        {
-            Entities(MotionSensors)
-                .WhenStateChange((to, from) => @from?.State == "on" && to?.State == "off" && MotionEnabled)
-                .Call(NoPresenceAction)
-                .Execute();
-        }
+        Entities(MotionSensors)
+            .WhenStateChange((to, from) => @from?.State == "on" && to?.State == "off" && MotionEnabled)
+            .Call(NoPresenceAction)
+            .Execute();
 
-        if (Lights != null && Lights.Any())
-        {
-            Entities(Lights!)
-                .WhenStateChange(@from: "on", to: "off")
-                .Call(NoPresenceAction)
-                .Execute();
-        }
+        Entities(Lights)
+            .WhenStateChange(@from: "on", to: "off")
+            .Call(NoPresenceAction)
+            .Execute();
 
-        if (PowerSensors != null && PowerSensors.Any())
-        {
-            Entities(PowerSensors)
-                .WhenStateChange(from: "on", to: "off")
-                .AndNotChangeFor(PowerSensorOffDebounce)
-                .Call(NoPresenceAction)
-                .Execute();
-        }
+        Entities(PowerSensors)
+            .WhenStateChange(from: "on", to: "off")
+            .AndNotChangeFor(PowerSensorOffDebounce)
+            .Call(NoPresenceAction)
+            .Execute();
 
-        if (MediaPlayerDevices != null && MediaPlayerDevices.Any())
-        {
-            Entities(MediaPlayerDevices)
-                .WhenStateChange((from,to) => new List<string>{"idle", "paused"}.Contains(from!.State) && to!.State == "playing")
-                .AndNotChangeFor(MediaPlayerStopDebounce)
-                .Call(NoPresenceAction)
-                .Execute();
-        }
+        Entities(MediaPlayerDevices)
+            .WhenStateChange((from, to) =>
+                new List<string> { "idle", "paused" }.Contains(from!.State) && to!.State == "playing")
+            .AndNotChangeFor(MediaPlayerStopDebounce)
+            .Call(NoPresenceAction)
+            .Execute();
 
-        if (EntryPoints != null && EntryPoints.Any())
-        {
-            Entities(EntryPoints!)
-                .WhenStateChange((from, to) => 
-                    new List<string>{"on", "closed"}.Contains(from!.State) &&
-                    new List<string> { "off", "open" }.Contains(to!.State))
-                .Call(NoPresenceAction)
-                .Execute();
-        }
+        Entities(EntryPoints)
+            .WhenStateChange((from, to) =>
+                new List<string> { "on", "closed" }.Contains(from!.State) &&
+                new List<string> { "off", "open" }.Contains(to!.State))
+            .Call(NoPresenceAction)
+            .Execute();
     }
 
     private void SetupOccupied()
     {
-        if (MotionSensors != null && MotionSensors.Any())
-        {
-            Entities(MotionSensors!)
-                .WhenStateChange((to, from) => @from?.State == "off" && to?.State == "on" && MotionEnabled)
-                .Call(PresenceAction)
-                .Execute();
-        }
+        Entities(MotionSensors)
+            .WhenStateChange((to, from) => @from?.State == "off" && to?.State == "on" && MotionEnabled)
+            .Call(PresenceAction)
+            .Execute();
 
-        if (Lights != null && Lights.Any())
-        {
-            Entities(Lights!)
-                .WhenStateChange(@from: "off", to: "on")
-                .Call(PresenceAction)
-                .Execute();
-        }
+        Entities(Lights)
+            .WhenStateChange(@from: "off", to: "on")
+            .Call(PresenceAction)
+            .Execute();
 
-        if (PowerSensors != null && PowerSensors.Any())
-        {
-            Entities(PowerSensors)
-                .WhenStateChange(from: "off", to: "on")
-                .AndNotChangeFor(PowerSensorOnDebounce)
-                .Call(PresenceAction)
-                .Execute();
-        }
+        Entities(PowerSensors)
+            .WhenStateChange(from: "off", to: "on")
+            .AndNotChangeFor(PowerSensorOnDebounce)
+            .Call(PresenceAction)
+            .Execute();
 
-        if (MediaPlayerDevices != null && MediaPlayerDevices.Any())
-        {
-            Entities(MediaPlayerDevices)
-                .WhenStateChange((from, to) => from!.State == "playing" && new List<string> { "idle", "paused" }.Contains(to!.State))
-                .AndNotChangeFor(MediaPlayerStopDebounce)
-                .Call(PresenceAction)
-                .Execute();
-        }
+        Entities(MediaPlayerDevices)
+            .WhenStateChange((from, to) =>
+                from!.State == "playing" && new List<string> { "idle", "paused" }.Contains(to!.State))
+            .AndNotChangeFor(MediaPlayerStopDebounce)
+            .Call(PresenceAction)
+            .Execute();
 
-        if (EntryPoints != null && EntryPoints.Any())
-        {
-            Entities(EntryPoints!)
-                .WhenStateChange((from,to) =>new List<string> { "off", "open" }.Contains(from!.State) &&
-                                 new List<string> { "on", "closed" }.Contains(to!.State))
-                .Call(PresenceAction)
-                .Execute();
-        }
+        Entities(EntryPoints)
+            .WhenStateChange((from, to) => new List<string> { "off", "open" }.Contains(from!.State) &&
+                                           new List<string> { "on", "closed" }.Contains(to!.State))
+            .Call(PresenceAction)
+            .Execute();
     }
+
     #endregion
-
-
 
     private async Task NoPresenceAction(string entityId, EntityState? to, EntityState? from)
     {
-        DebugLog( $"No Presence: {entityId}", entityId);
+        DebugLog($"No Presence: {entityId}", entityId);
 
-        foreach (var os in AllOccupancySensors!.Union(MediaPlayerDevices!))
+        foreach (var os in State.Where(e => AllOccupancySensors(e) || MediaPlayerDevices(e)))
         {
-            DebugLog( "{os} : {state}", os, GetState(os!).State);
+            DebugLog("{os} : {state}", os.EntityId, os.State);
         }
 
-        DebugLog( "Timer is empty: {timer}", Timer == null);
+        DebugLog("Timer is empty: {timer}", Timer == null);
 
-        DebugLog("all occupancy are off: {result}", this.AllStatesAre(AllOccupancySensors, "off", "closed"));
-
-        if ((AllOccupancySensors == null || !AllOccupancySensors.Any() || this.AllStatesAre(AllOccupancySensors, "off", "closed")) && 
-            (MediaPlayerDevices == null || !MediaPlayerDevices.Any() || !this.AnyStatesAre(MediaPlayerDevices, "playing")) && 
+        if (this.AllStatesAre(AllOccupancySensors, "off", "closed") &&
+            !this.AnyStatesAre(MediaPlayerDevices, "playing") &&
             Timer == null)
         {
             DebugLog("calling no presence action");
@@ -167,13 +136,7 @@ public abstract class RoomApp : NetDaemonApp
         }
         else
         {
-
             DebugLog("No presence criteria not met");
-            //DebugLog("occupancy== null: {result}", AllOccupancySensors == null);
-            //DebugLog("alloccupancy any: {result}", AllOccupancySensors.Any());
-            //DebugLog("all occupancy off/closed: {result}", this.AllStatesAre(AllOccupancySensors, "off", "closed"));
-            //DebugLog("mediadevices == null: {result}", MediaPlayerDevices != null);
-            //DebugLog("Timer == null: {result}", Timer == null);
         }
     }
 
@@ -184,7 +147,7 @@ public abstract class RoomApp : NetDaemonApp
 
     private async Task PresenceAction(string entityId, EntityState? to, EntityState? from)
     {
-        DebugLog( $"Presence: {entityId}", entityId);
+        DebugLog($"Presence: {entityId}", entityId);
         await PresenceAction();
     }
 
@@ -212,41 +175,80 @@ public abstract class RoomApp : NetDaemonApp
     [DisableLog(SupressLogType.MissingExecute)]
     public async Task ToggleLights(bool on)
     {
-        DebugLog( "Toggle lights: {on}", on);
+        DebugLog("Toggle lights: {on}", on);
 
-        if (Lights != null && Lights.Any())
+        var lights = Entities(Lights);
+
+        IAction? action = null;
+        if (@on)
         {
-            var lights = Entities(Lights);
-
-            IAction? action = null;
-            if (@on)
+            if (!this.AllStatesAre(Lights, "on"))
             {
-                if (!this.AllStatesAre(Lights, "on"))
-                {
-                    // todo: lux sensitivity
-                    action = lights.TurnOn();
-                }
-
-                StartTimer();
-            }
-            else if (!on)
-            {
-                if (!this.AllStatesAre(Lights, "off"))
-                {
-                    action = lights.TurnOff();
-                }
-
-                CancelTimer();
+                // todo: lux sensitivity
+                action = lights.TurnOn();
             }
 
-            if (action != null)
-                await action.ExecuteAsync();
+            StartTimer();
         }
+        else if (!on)
+        {
+            if (!this.AllStatesAre(Lights, "off"))
+            {
+                action = lights.TurnOff();
+            }
+
+            CancelTimer();
+        }
+
+        if (action != null)
+            await action.ExecuteAsync();
     }
 
     protected void DebugLog(string message, params object[] data)
     {
         if (DebugLogEnabled)
-            Log(LogLevel.Information, message, data);
+            Log(LogLevel.Information, $"{Thread.CurrentThread.Name}: {message}", data);
+    }
+
+    private string GetEntityRegex(EntityType entityType, params DeviceType[] deviceTypes)
+    {
+        var entityString = entityType.AsString(EnumFormat.DisplayName, EnumFormat.Name);
+
+        string? deviceString = null;
+
+        if (deviceTypes.Any())
+            deviceString = string.Join("|",deviceTypes.Select(d => d.AsString(EnumFormat.DisplayName, EnumFormat.Name)));
+
+        if (!string.IsNullOrEmpty(deviceString))
+            deviceString = $"_({deviceString})";
+
+        // light.study_1
+        // binary_sensor.study_motion
+        // binary_sensor.study_motion_1
+        // binary_sensor.study_door
+        // binary_sensor.study_door_1
+        // binary_sensor.study_window
+        // binary_sensor.study_window_1
+
+        var entityRegex = @$"{entityString}.{RoomPrefix}{deviceString}(_\d)*";
+
+        return entityRegex;
+    }
+
+    private enum EntityType
+    {
+        [Display(Name = "binary_sensor")]
+        BinarySensor,
+        Light,
+        Switch,
+        MediaPlayer
+    }
+
+    private enum DeviceType
+    {
+        Motion,
+        Power,
+        Door,
+        Window
     }
 }
