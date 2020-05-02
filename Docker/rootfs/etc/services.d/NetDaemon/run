@@ -1,0 +1,11 @@
+#!/usr/bin/with-contenv /bin/bash
+
+# ==============================================================================
+# NetDaemon Service
+# Starts NetDaemon
+# ==============================================================================
+cd /daemon || echo -e "\033[31mCould not change directory to daemon\033[0m" >&2
+
+echo -e "\033[32mStarting NetDaemon...\033[0m" >&2
+
+./daemonapp
