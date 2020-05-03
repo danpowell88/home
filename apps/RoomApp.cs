@@ -22,12 +22,16 @@ public abstract class RoomApp : NetDaemonApp
 
     protected abstract bool IndoorRoom { get; }
 
-    public Func<IEntityProperties, bool> MotionSensors => e => MotionSensorsRegex.IsMatch(e.EntityId);
+    public Func<IEntityProperties, bool> MotionSensors => e =>
+    {
+        Thread.Sleep(5000);
+        return false;
+    };// MotionSensorsRegex.IsMatch(e.EntityId);
 
     public Regex MotionSensorsRegex => new Regex(GetEntityRegex(EntityType.BinarySensor, DeviceType.Motion),
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    public Func<IEntityProperties, bool> PowerSensors => e => PowerSensorsRegex.IsMatch(e.EntityId) &&  e.Attribute!.active_threshold != null;
+    public Func<IEntityProperties, bool> PowerSensors => e => false;//PowerSensorsRegex.IsMatch(e.EntityId) &&  e.Attribute!.active_threshold != null;
 
     public Regex PowerSensorsRegex => new Regex(GetEntityRegex(EntityType.Sensor, DeviceType.Wattage),RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
