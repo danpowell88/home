@@ -1,15 +1,7 @@
 gym:
   class: Gym
-  MotionSensors:
-    - binary_sensor.gym_motion_occupancy
-    - binary_sensor.gym_2_motion_occupancy
-  PowerSensors:
-    - binary_sensor.bike_training
-  MediaPlayerDevices:
-    - media_player.emby_emby_theater_desktop_14aiv2u
-
   BikeFanSwitch: switch.gym_bike_fan
   WeightFanSwitch: switch.gym_weights_fan
-  Training: binary_sensor.bike_training
+  Training: sensor.gym_trainer_wattage
   Climate: sensor.gym_temperature
   FanButton: sensor.gym_switch_click

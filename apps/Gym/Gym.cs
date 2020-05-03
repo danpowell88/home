@@ -1,6 +1,9 @@
 using System;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 public class Gym : RoomApp
 {
@@ -15,8 +18,8 @@ public class Gym : RoomApp
     public override Task InitializeAsync()
     {
         Entity(Training!)
-            .WhenStateChange((from, to) => 
-                from!.State == "off" && to!.State == "on" && 
+            .WhenStateChange((from, to) =>
+                to!.State ?? 0 >= decimal.Parse(State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold) &&
                 GetState(Climate!)!.State >= FanTriggerTemp)
             .AndNotChangeFor(TimeSpan.FromMinutes(1))
             .Call(BikeTrainingAction)
@@ -31,8 +34,9 @@ public class Gym : RoomApp
             .Execute();
 
         Entity(Training!)
-            .WhenStateChange(from: "on", to: "off")
-            .AndNotChangeFor(TimeSpan.FromMinutes(2))
+            .WhenStateChange((from, to) =>
+                to!.State ?? 0 < decimal.Parse(State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold))
+                    .AndNotChangeFor(TimeSpan.FromMinutes(2))
             .Call(NoBikeTrainingAction)
             .Execute();
 

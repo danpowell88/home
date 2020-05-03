@@ -4,8 +4,8 @@ using JoySoftware.HomeAssistant.NetDaemon.Common;
 using System.Linq;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
-using System.Threading;
 using EnumsNET;
 using Humanizer;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
@@ -22,16 +22,12 @@ public abstract class RoomApp : NetDaemonApp
 
     protected abstract bool IndoorRoom { get; }
 
-    public Func<IEntityProperties, bool> MotionSensors => e =>
-    {
-        Thread.Sleep(5000);
-        return false;
-    };// MotionSensorsRegex.IsMatch(e.EntityId);
+    public Func<IEntityProperties, bool> MotionSensors => e => MotionSensorsRegex.IsMatch(e.EntityId);
 
     public Regex MotionSensorsRegex => new Regex(GetEntityRegex(EntityType.BinarySensor, DeviceType.Motion),
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    public Func<IEntityProperties, bool> PowerSensors => e => false;//PowerSensorsRegex.IsMatch(e.EntityId) &&  e.Attribute!.active_threshold != null;
+    public Func<IEntityProperties, bool> PowerSensors => e => PowerSensorsRegex.IsMatch(e.EntityId) &&  e.Attribute!.active_threshold != null;
 
     public Regex PowerSensorsRegex => new Regex(GetEntityRegex(EntityType.Sensor, DeviceType.Wattage),RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -55,16 +51,21 @@ public abstract class RoomApp : NetDaemonApp
 
     public override Task InitializeAsync()
     {
+
         LogDiscoveredEntities();
 
         SetupOccupied();
         SetupUnoccupied();
+
+
 
         return Task.CompletedTask;
     }
 
     private void LogDiscoveredEntities()
     {
+
+
         if (!DebugLogEnabled) return;
 
         DebugEntityDiscovery(MotionSensors, nameof(MotionSensors), MotionSensorsRegex);
@@ -72,10 +73,16 @@ public abstract class RoomApp : NetDaemonApp
         DebugEntityDiscovery(MediaPlayerDevices, nameof(MediaPlayerDevices), MediaPlayerDevicesRegex);
         DebugEntityDiscovery(Lights, nameof(Lights), LightsRegex);
         DebugEntityDiscovery(EntryPoints, nameof(EntryPoints), EntryPointsRegex);
+
+        
     }
 
     private void DebugEntityDiscovery(Func<IEntityProperties, bool> searcher, string description, Regex searchRegex)
     {
+        Stopwatch sw =new Stopwatch();
+
+        sw.Start();
+
         var humanDescription = description.Humanize(LetterCasing.LowerCase);
         DebugLog("Searching for {description} using regex '{regex}'", humanDescription, searchRegex.ToString());
 
@@ -87,6 +94,9 @@ public abstract class RoomApp : NetDaemonApp
         {
             DebugLog("Found {description}: {entity}", humanDescription, entity.EntityId);
         }
+        sw.Stop();
+
+        Log(LogLevel.Information, "Init completed in {seconds}", sw.Elapsed.TotalSeconds);
     }
 
     #region Triggers
@@ -138,8 +148,7 @@ public abstract class RoomApp : NetDaemonApp
             .Execute();
 
         Entities(PowerSensors)
-            .WhenStateChange((from, to) => to!.State >= State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold)
-            //.WhenStateChange(from: "off", to: "on")
+            .WhenStateChange((from, to) => to!.State >= decimal.Parse(State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold))
             .AndNotChangeFor(PowerSensorOnDebounce)
             .Call(PresenceAction)
             .Execute();
@@ -162,7 +171,7 @@ public abstract class RoomApp : NetDaemonApp
 
     private async Task NoPresenceAction(string entityId, EntityState? to, EntityState? from)
     {
-        DebugLog($"No Presence: {entityId}", entityId);
+        DebugLog("No Presence: {entityId} from {fromState} to {toState}", entityId, from?.State, to?.State);
 
         foreach (var os in State.Where(e => AllOccupancySensors(e) || MediaPlayerDevices(e)))
         {
@@ -191,7 +200,7 @@ public abstract class RoomApp : NetDaemonApp
 
     private async Task PresenceAction(string entityId, EntityState? to, EntityState? from)
     {
-        DebugLog($"Presence: {entityId}", entityId);
+        DebugLog("Presence: {entityId} from {fromState} to {toState}", entityId, from?.State, to?.State);
         await PresenceAction();
     }
 
