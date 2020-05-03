@@ -22,23 +22,15 @@ public abstract class RoomApp : NetDaemonApp
 
     protected abstract bool IndoorRoom { get; }
 
-    public Func<IEntityProperties, bool> MotionSensors => e => MotionSensorsRegex.IsMatch(e.EntityId);
+    public Func<IEntityProperties, bool> MotionSensors => e => IsEntityMatch(e,EntityType.BinarySensor, DeviceType.Motion);
 
-    public Regex MotionSensorsRegex => new Regex(GetEntityRegex(EntityType.BinarySensor, DeviceType.Motion),
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    public Func<IEntityProperties, bool> PowerSensors => e => IsEntityMatch(e,EntityType.Sensor, DeviceType.Wattage) && e.Attribute!.active_threshold != null;
 
-    public Func<IEntityProperties, bool> PowerSensors => e => PowerSensorsRegex.IsMatch(e.EntityId) &&  e.Attribute!.active_threshold != null;
+    public Func<IEntityProperties, bool> MediaPlayerDevices => e => IsEntityMatch(e,EntityType.MediaPlayer);
+    public Func<IEntityProperties, bool> Lights => e => IsEntityMatch(e, EntityType.Light);
 
-    public Regex PowerSensorsRegex => new Regex(GetEntityRegex(EntityType.Sensor, DeviceType.Wattage),RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    public Func<IEntityProperties, bool> MediaPlayerDevices => e => MediaPlayerDevicesRegex.IsMatch(e.EntityId);
-    public Regex MediaPlayerDevicesRegex => new Regex(GetEntityRegex(EntityType.MediaPlayer), RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    public Func<IEntityProperties, bool> Lights => e => LightsRegex.IsMatch(e.EntityId);
-    public Regex LightsRegex => new Regex(GetEntityRegex(EntityType.Light), RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    public Func<IEntityProperties, bool> EntryPoints => e => EntryPointsRegex.IsMatch(e.EntityId);
-    public Regex EntryPointsRegex => new Regex(GetEntityRegex(EntityType.BinarySensor, DeviceType.Door, DeviceType.Window), RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    public Func<IEntityProperties, bool> EntryPoints =>
+        e => IsEntityMatch(e, EntityType.BinarySensor, DeviceType.Door, DeviceType.Window);
     protected virtual Func<IEntityProperties, bool> AllOccupancySensors => e => MotionSensors(e) && PowerSensors(e);
 
     protected ISchedulerResult? Timer;
@@ -51,40 +43,29 @@ public abstract class RoomApp : NetDaemonApp
 
     public override Task InitializeAsync()
     {
-
         LogDiscoveredEntities();
 
         SetupOccupied();
         SetupUnoccupied();
-
-
 
         return Task.CompletedTask;
     }
 
     private void LogDiscoveredEntities()
     {
-
-
         if (!DebugLogEnabled) return;
 
-        DebugEntityDiscovery(MotionSensors, nameof(MotionSensors), MotionSensorsRegex);
-        DebugEntityDiscovery(PowerSensors, nameof(PowerSensors), PowerSensorsRegex);
-        DebugEntityDiscovery(MediaPlayerDevices, nameof(MediaPlayerDevices), MediaPlayerDevicesRegex);
-        DebugEntityDiscovery(Lights, nameof(Lights), LightsRegex);
-        DebugEntityDiscovery(EntryPoints, nameof(EntryPoints), EntryPointsRegex);
-
-        
+        DebugEntityDiscovery(MotionSensors, nameof(MotionSensors));
+        DebugEntityDiscovery(PowerSensors, nameof(PowerSensors));
+        DebugEntityDiscovery(MediaPlayerDevices, nameof(MediaPlayerDevices));
+        DebugEntityDiscovery(Lights, nameof(Lights));
+        DebugEntityDiscovery(EntryPoints, nameof(EntryPoints));
     }
 
-    private void DebugEntityDiscovery(Func<IEntityProperties, bool> searcher, string description, Regex searchRegex)
+    private void DebugEntityDiscovery(Func<IEntityProperties, bool> searcher, string description)
     {
-        Stopwatch sw =new Stopwatch();
-
-        sw.Start();
-
         var humanDescription = description.Humanize(LetterCasing.LowerCase);
-        DebugLog("Searching for {description} using regex '{regex}'", humanDescription, searchRegex.ToString());
+        DebugLog("Searching for {description}", humanDescription);
 
         var states = State.Where(searcher).ToList();
         
@@ -94,9 +75,6 @@ public abstract class RoomApp : NetDaemonApp
         {
             DebugLog("Found {description}: {entity}", humanDescription, entity.EntityId);
         }
-        sw.Stop();
-
-        Log(LogLevel.Information, "Init completed in {seconds}", sw.Elapsed.TotalSeconds);
     }
 
     #region Triggers
@@ -115,7 +93,6 @@ public abstract class RoomApp : NetDaemonApp
 
         Entities(PowerSensors)
             .WhenStateChange((from, to) => to!.State < State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold)
-            //.WhenStateChange(from: "on", to: "off")
             .AndNotChangeFor(PowerSensorOffDebounce)
             .Call(NoPresenceAction)
             .Execute();
@@ -263,30 +240,21 @@ public abstract class RoomApp : NetDaemonApp
             Log(LogLevel.Information, message, data);
     }
 
-    private string GetEntityRegex(EntityType entityType, params DeviceType[] deviceTypes)
+    private bool IsEntityMatch(IEntityProperties prop, EntityType entityType, params DeviceType[] deviceTypes)
     {
-        var entityString = entityType.AsString(EnumFormat.DisplayName, EnumFormat.Name);
+        var entityString = entityType.AsString(EnumFormat.DisplayName, EnumFormat.Name)!.ToLower();
+        var deviceStrings = deviceTypes.Select(t => t.AsString(EnumFormat.DisplayName, EnumFormat.Name)!.ToLower()).ToList();
 
-        string? deviceString = null;
+        if (prop.Attribute?.area != RoomPrefix.ToLower())
+            return false;
 
-        if (deviceTypes.Any())
-            deviceString = string.Join("|",deviceTypes.Select(d => d.AsString(EnumFormat.DisplayName, EnumFormat.Name)));
+        if (prop.EntityId.ToLower().Split(".")[0] != entityString)
+            return false;
 
-        if (!string.IsNullOrEmpty(deviceString))
-            deviceString = $"_({deviceString})";
+        if (deviceStrings == null || !deviceStrings.Any())
+            return true;
 
-        // light.study_1
-        // binary_sensor.study_motion
-        // binary_sensor.study_motion_1
-        // binary_sensor.study_door
-        // binary_sensor.study_door_1
-        // binary_sensor.study_window
-        // binary_sensor.study_window_1
-
-        var entityRegex = @$"{entityString}\.{RoomPrefix}(?:_[A-Za-z0-9]*)*{deviceString}(?:_\d)*$".ToLower();
-
-        return entityRegex;
-    }
+        return deviceStrings.Contains(prop.Attribute?.device_class); }
 
     private enum EntityType
     {
