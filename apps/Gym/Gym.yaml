@@ -7,10 +7,7 @@ gym:
     - binary_sensor.bike_training
   MediaPlayerDevices:
     - media_player.emby_emby_theater_desktop_14aiv2u
-  Lights:
-    - light.gym_light
-  EntryPoints:
-    - binary_sensor.gym_door_contact
+
   BikeFanSwitch: switch.gym_bike_fan
   WeightFanSwitch: switch.gym_weights_fan
   Training: binary_sensor.bike_training

@@ -3,17 +3,17 @@ using System.Threading.Tasks;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
 using System.Linq;
 using System;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 using System.Threading;
 using EnumsNET;
+using Humanizer;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 
 public abstract class RoomApp : NetDaemonApp
 {
-    protected abstract string RoomPrefix { get; }
+    protected virtual string RoomPrefix => GetType().Name;
 
     protected virtual TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(3);
     protected virtual TimeSpan PowerSensorOffDebounce => TimeSpan.FromMinutes(5);
@@ -22,13 +22,23 @@ public abstract class RoomApp : NetDaemonApp
 
     protected abstract bool IndoorRoom { get; }
 
-    public Func<IEntityProperties, bool> MotionSensors => e => Regex.Match(e.EntityId, GetEntityRegex(EntityType.BinarySensor, DeviceType.Motion)).Success;
-    public Func<IEntityProperties, bool> PowerSensors => e => Regex.Match(e.EntityId, GetEntityRegex(EntityType.Switch, DeviceType.Power)).Success;
+    public Func<IEntityProperties, bool> MotionSensors => e => MotionSensorsRegex.IsMatch(e.EntityId);
 
-    public Func<IEntityProperties, bool> MediaPlayerDevices => e => Regex.Match(e.EntityId, GetEntityRegex(EntityType.MediaPlayer)).Success;
-    public Func<IEntityProperties, bool> Lights => e => Regex.Match(e.EntityId, GetEntityRegex(EntityType.Light)).Success;
+    public Regex MotionSensorsRegex => new Regex(GetEntityRegex(EntityType.BinarySensor, DeviceType.Motion),
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    public Func<IEntityProperties, bool> EntryPoints => e => Regex.Match(e.EntityId, GetEntityRegex(EntityType.BinarySensor, DeviceType.Door, DeviceType.Window)).Success;
+    public Func<IEntityProperties, bool> PowerSensors => e => PowerSensorsRegex.IsMatch(e.EntityId) &&  e.Attribute!.active_threshold != null;
+
+    public Regex PowerSensorsRegex => new Regex(GetEntityRegex(EntityType.Sensor, DeviceType.Wattage),RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    public Func<IEntityProperties, bool> MediaPlayerDevices => e => MediaPlayerDevicesRegex.IsMatch(e.EntityId);
+    public Regex MediaPlayerDevicesRegex => new Regex(GetEntityRegex(EntityType.MediaPlayer), RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    public Func<IEntityProperties, bool> Lights => e => LightsRegex.IsMatch(e.EntityId);
+    public Regex LightsRegex => new Regex(GetEntityRegex(EntityType.Light), RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    public Func<IEntityProperties, bool> EntryPoints => e => EntryPointsRegex.IsMatch(e.EntityId);
+    public Regex EntryPointsRegex => new Regex(GetEntityRegex(EntityType.BinarySensor, DeviceType.Door, DeviceType.Window), RegexOptions.Compiled | RegexOptions.IgnoreCase);
     protected virtual Func<IEntityProperties, bool> AllOccupancySensors => e => MotionSensors(e) && PowerSensors(e);
 
     protected ISchedulerResult? Timer;
@@ -41,10 +51,38 @@ public abstract class RoomApp : NetDaemonApp
 
     public override Task InitializeAsync()
     {
+        LogDiscoveredEntities();
+
         SetupOccupied();
         SetupUnoccupied();
 
         return Task.CompletedTask;
+    }
+
+    private void LogDiscoveredEntities()
+    {
+        if (!DebugLogEnabled) return;
+
+        DebugEntityDiscovery(MotionSensors, nameof(MotionSensors), MotionSensorsRegex);
+        DebugEntityDiscovery(PowerSensors, nameof(PowerSensors), PowerSensorsRegex);
+        DebugEntityDiscovery(MediaPlayerDevices, nameof(MediaPlayerDevices), MediaPlayerDevicesRegex);
+        DebugEntityDiscovery(Lights, nameof(Lights), LightsRegex);
+        DebugEntityDiscovery(EntryPoints, nameof(EntryPoints), EntryPointsRegex);
+    }
+
+    private void DebugEntityDiscovery(Func<IEntityProperties, bool> searcher, string description, Regex searchRegex)
+    {
+        var humanDescription = description.Humanize(LetterCasing.LowerCase);
+        DebugLog("Searching for {description} using regex '{regex}'", humanDescription, searchRegex.ToString());
+
+        var states = State.Where(searcher).ToList();
+        
+        DebugLog("{count} {description} found", states.Count, humanDescription);
+
+        foreach (var entity in states)
+        {
+            DebugLog("Found {description}: {entity}", humanDescription, entity.EntityId);
+        }
     }
 
     #region Triggers
@@ -62,7 +100,8 @@ public abstract class RoomApp : NetDaemonApp
             .Execute();
 
         Entities(PowerSensors)
-            .WhenStateChange(from: "on", to: "off")
+            .WhenStateChange((from, to) => to!.State < State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold)
+            //.WhenStateChange(from: "on", to: "off")
             .AndNotChangeFor(PowerSensorOffDebounce)
             .Call(NoPresenceAction)
             .Execute();
@@ -95,7 +134,8 @@ public abstract class RoomApp : NetDaemonApp
             .Execute();
 
         Entities(PowerSensors)
-            .WhenStateChange(from: "off", to: "on")
+            .WhenStateChange((from, to) => to!.State >= State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold)
+            //.WhenStateChange(from: "off", to: "on")
             .AndNotChangeFor(PowerSensorOnDebounce)
             .Call(PresenceAction)
             .Execute();
@@ -207,7 +247,7 @@ public abstract class RoomApp : NetDaemonApp
     protected void DebugLog(string message, params object[] data)
     {
         if (DebugLogEnabled)
-            Log(LogLevel.Information, $"{Thread.CurrentThread.Name}: {message}", data);
+            Log(LogLevel.Information, message, data);
     }
 
     private string GetEntityRegex(EntityType entityType, params DeviceType[] deviceTypes)
@@ -230,7 +270,7 @@ public abstract class RoomApp : NetDaemonApp
         // binary_sensor.study_window
         // binary_sensor.study_window_1
 
-        var entityRegex = @$"{entityString}.{RoomPrefix}{deviceString}(_\d)*";
+        var entityRegex = @$"{entityString}\.{RoomPrefix}(?:_[A-Za-z0-9]*)*{deviceString}(?:_\d)*$".ToLower();
 
         return entityRegex;
     }
@@ -241,7 +281,9 @@ public abstract class RoomApp : NetDaemonApp
         BinarySensor,
         Light,
         Switch,
-        MediaPlayer
+        [Display(Name = "media_player")]
+        MediaPlayer,
+        Sensor
     }
 
     private enum DeviceType
@@ -249,6 +291,8 @@ public abstract class RoomApp : NetDaemonApp
         Motion,
         Power,
         Door,
-        Window
+        Window,
+        Wattage
     }
 }
+

@@ -4,7 +4,6 @@ using JoySoftware.HomeAssistant.NetDaemon.Common;
 
 public class Gym : RoomApp
 {
-
     public string? Training { get; set; }
     public string? Climate { get; set; }
     public string? BikeFanSwitch { get; set; }
@@ -71,8 +70,6 @@ public class Gym : RoomApp
     }
 
     protected override bool IndoorRoom => true;
-
-    protected override string RoomPrefix => "gym";
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(10);
-
+    protected override bool DebugLogEnabled => true;
 }
