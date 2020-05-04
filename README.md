@@ -4,7 +4,7 @@
 ## TODO
 
 ### General
-Implement outside rooms (LaundryOutside, Patio, GymOutside, GarageSide, FrontEntry)
+~~Implement outside rooms (LaundryOutside, Patio, GymOutside, GarageSide, FrontEntry)~~
 Security notifications when doors/windows/covers opened and sleeping or not home
 Implement concept of supplemental lighting for feature lights
 Implement motion hours of operation override (maybe)

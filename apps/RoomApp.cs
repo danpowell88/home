@@ -21,6 +21,7 @@ public abstract class RoomApp : NetDaemonApp
     protected virtual TimeSpan PowerSensorOffDebounce => TimeSpan.FromMinutes(5);
     protected virtual TimeSpan PowerSensorOnDebounce => TimeSpan.FromSeconds(30);
     protected virtual TimeSpan MediaPlayerStopDebounce => TimeSpan.FromMinutes(1);
+    protected virtual TimeSpan WorkstationDebounce => TimeSpan.FromMinutes(1);
 
     protected abstract bool IndoorRoom { get; }
 
@@ -60,6 +61,10 @@ public abstract class RoomApp : NetDaemonApp
             Log(LogLevel.Warning, "{Room} is disabled", RoomPrefix);
         }
 
+        // Start a timer so that if restarting netdaemon (and existing timers are lost) and lights are on
+        // they will get turned off 
+        StartTimer();
+
         return Task.CompletedTask;
     }
 
@@ -95,11 +100,6 @@ public abstract class RoomApp : NetDaemonApp
 
     private void SetupUnoccupied()
     {
-        Entities(MotionSensors)
-            .WhenStateChange((to, from) => @from?.State == "on" && to?.State == "off")
-            .Call(NoPresenceAction)
-            .Execute();
-
         Entities(OccupancySensors)
             .WhenStateChange((to, from) => @from?.State == "on" && to?.State == "off")
             .Call(NoPresenceAction)
@@ -112,6 +112,7 @@ public abstract class RoomApp : NetDaemonApp
 
         Entities(Workstations)
             .WhenStateChange(to: "off", from: "on")
+            .AndNotChangeFor(WorkstationDebounce)
             .Call(NoPresenceAction)
             .Execute();
 
@@ -130,19 +131,19 @@ public abstract class RoomApp : NetDaemonApp
             .AndNotChangeFor(MediaPlayerStopDebounce)
             .Call(NoPresenceAction)
             .Execute();
-
-        Entities(EntryPoints)
-            .WhenStateChange((to, from) =>
-                new List<string> { "on", "closed" }.Contains(from!.State) &&
-                new List<string> { "off", "open" }.Contains(to!.State))
-            .Call(NoPresenceAction)
-            .Execute();
     }
 
     private void SetupOccupied()
     {
         Entities(MotionSensors)
             .WhenStateChange((to, from) => @from?.State == "off" && to?.State == "on")
+            .Call(PresenceAction)
+            .Execute();
+
+        // This ensures if a room has motion continually for some time that we start timers etc
+        // from the point at which motion ceases
+        Entities(MotionSensors)
+            .WhenStateChange((to, from) => @from?.State == "on" && to?.State == "off")
             .Call(PresenceAction)
             .Execute();
 
@@ -181,6 +182,13 @@ public abstract class RoomApp : NetDaemonApp
             .WhenStateChange((to, from) =>
                 new List<string> { "off", "open" }.Contains(from!.State) &&
                 new List<string> { "on", "closed" }.Contains(to!.State))
+            .Call(PresenceAction)
+            .Execute();
+
+        Entities(EntryPoints)
+            .WhenStateChange((to, from) =>
+                new List<string> { "on", "closed" }.Contains(from!.State) &&
+                new List<string> { "off", "open" }.Contains(to!.State))
             .Call(PresenceAction)
             .Execute();
     }
@@ -233,6 +241,7 @@ public abstract class RoomApp : NetDaemonApp
 
     protected virtual async Task NoPresenceAction()
     {
+        CancelTimer();
         await ToggleLights(false);
     }
 
@@ -246,6 +255,7 @@ public abstract class RoomApp : NetDaemonApp
 
     protected virtual async Task PresenceAction()
     {
+        StartTimer();
         await ToggleLights(true);
     }
 
@@ -279,8 +289,6 @@ public abstract class RoomApp : NetDaemonApp
             {
                 action = lights.TurnOn();
             }
-
-            StartTimer();
         }
         else if (!on)
         {
@@ -288,8 +296,6 @@ public abstract class RoomApp : NetDaemonApp
             {
                 action = lights.TurnOff();
             }
-
-            CancelTimer();
         }
 
         if (action != null)
