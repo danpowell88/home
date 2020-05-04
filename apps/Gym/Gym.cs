@@ -19,7 +19,7 @@ public class Gym : RoomApp
     {
         Entity(Training!)
             .WhenStateChange((from, to) =>
-                to!.State ?? 0 >= decimal.Parse(State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold) &&
+                to!.State ?? 0 >= State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold &&
                 GetState(Climate!)!.State >= FanTriggerTemp)
             .AndNotChangeFor(TimeSpan.FromMinutes(1))
             .Call(BikeTrainingAction)
@@ -35,7 +35,7 @@ public class Gym : RoomApp
 
         Entity(Training!)
             .WhenStateChange((from, to) =>
-                to!.State ?? 0 < decimal.Parse(State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold))
+                to!.State ?? 0 < State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold)
                     .AndNotChangeFor(TimeSpan.FromMinutes(2))
             .Call(NoBikeTrainingAction)
             .Execute();
