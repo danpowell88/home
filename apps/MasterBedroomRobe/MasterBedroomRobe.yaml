@@ -1,6 +1,2 @@
 masterbedroomrobe:
   class: MasterBedroomRobe
-  MotionSensors:
-    - binary_sensor.robe_motion_occupancy
-  Lights:
-    - light.master_robe

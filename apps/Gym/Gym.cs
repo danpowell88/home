@@ -1,10 +1,10 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
-using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
+[UsedImplicitly]
 public class Gym : RoomApp
 {
     public string? Training { get; set; }
@@ -75,5 +75,4 @@ public class Gym : RoomApp
 
     protected override bool IndoorRoom => true;
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(10);
-    protected override bool DebugLogEnabled => true;
 }

@@ -4,8 +4,6 @@ using JoySoftware.HomeAssistant.NetDaemon.Common;
 using System.Linq;
 using System;
 using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
-using System.Text.RegularExpressions;
 using EnumsNET;
 using Humanizer;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
@@ -15,27 +13,33 @@ public abstract class RoomApp : NetDaemonApp
 {
     protected virtual string RoomPrefix => GetType().Name;
 
+    private TimeSpan OccupancyTimeoutTest => TimeSpan.FromMinutes(2);
+
     protected virtual TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(3);
+
+    protected TimeSpan OccupancyTimeoutObserved => DebugMode ? OccupancyTimeoutTest : OccupancyTimeout;
     protected virtual TimeSpan PowerSensorOffDebounce => TimeSpan.FromMinutes(5);
     protected virtual TimeSpan PowerSensorOnDebounce => TimeSpan.FromSeconds(30);
     protected virtual TimeSpan MediaPlayerStopDebounce => TimeSpan.FromMinutes(1);
 
     protected abstract bool IndoorRoom { get; }
 
-    public Func<IEntityProperties, bool> MotionSensors => e => IsEntityMatch(e,EntityType.BinarySensor, DeviceType.Motion);
-
-    public Func<IEntityProperties, bool> PowerSensors => e => IsEntityMatch(e,EntityType.Sensor, DeviceType.Wattage) && e.Attribute!.active_threshold != null;
-
-    public Func<IEntityProperties, bool> MediaPlayerDevices => e => IsEntityMatch(e,EntityType.MediaPlayer);
+    public Func<IEntityProperties, bool> MotionSensors => e => IsEntityMatch(e, EntityType.BinarySensor, DeviceClass.Motion);
+    public Func<IEntityProperties, bool> OccupancySensors => e => IsEntityMatch(e, EntityType.BinarySensor, DeviceClass.Occupancy);
+    public Func<IEntityProperties, bool> PowerSensors => e => IsEntityMatch(e, EntityType.Sensor, DeviceClass.Power) && e.Attribute!.active_threshold != null;
+    public Func<IEntityProperties, bool> MediaPlayerDevices => e => IsEntityMatch(e, EntityType.MediaPlayer);
     public Func<IEntityProperties, bool> Lights => e => IsEntityMatch(e, EntityType.Light);
-
+    public Func<IEntityProperties, bool> Workstations => e => IsEntityMatch(e, EntityType.WorkStation);
     public Func<IEntityProperties, bool> EntryPoints =>
-        e => IsEntityMatch(e, EntityType.BinarySensor, DeviceType.Door, DeviceType.Window);
-    protected virtual Func<IEntityProperties, bool> AllOccupancySensors => e => MotionSensors(e) && PowerSensors(e);
+        e => IsEntityMatch(e, EntityType.BinarySensor, DeviceClass.Door, DeviceClass.Window) ||
+                           IsEntityMatch(e, EntityType.Cover, DeviceClass.Garage);
+    protected virtual Func<IEntityProperties, bool> AllOccupancySensors => e => MotionSensors(e) && PowerSensors(e) && OccupancySensors(e);
 
     protected ISchedulerResult? Timer;
 
-    protected virtual bool DebugLogEnabled => false;
+    protected virtual bool DebugMode => false;
+
+    protected virtual bool RoomEnabled => true;
 
     protected virtual bool MotionEnabled => IndoorRoom ?
         GetState("input_boolean.indoor_motion_enabled")?.State == "on" :
@@ -43,23 +47,33 @@ public abstract class RoomApp : NetDaemonApp
 
     public override Task InitializeAsync()
     {
-        LogDiscoveredEntities();
+        if (RoomEnabled)
+        {
+            LogDiscoveredEntities();
+            DebugLog("Occupancy Timeout: {timeout} minute(s)", OccupancyTimeoutObserved.TotalMinutes);
 
-        SetupOccupied();
-        SetupUnoccupied();
+            SetupOccupied();
+            SetupUnoccupied();
+        }
+        else
+        {
+            Log(LogLevel.Warning, "{Room} is disabled", RoomPrefix);
+        }
 
         return Task.CompletedTask;
     }
 
     private void LogDiscoveredEntities()
     {
-        if (!DebugLogEnabled) return;
+        if (!DebugMode) return;
 
         DebugEntityDiscovery(MotionSensors, nameof(MotionSensors));
         DebugEntityDiscovery(PowerSensors, nameof(PowerSensors));
         DebugEntityDiscovery(MediaPlayerDevices, nameof(MediaPlayerDevices));
         DebugEntityDiscovery(Lights, nameof(Lights));
         DebugEntityDiscovery(EntryPoints, nameof(EntryPoints));
+        DebugEntityDiscovery(Workstations, nameof(Workstations));
+        DebugEntityDiscovery(OccupancySensors, nameof(OccupancySensors));
     }
 
     private void DebugEntityDiscovery(Func<IEntityProperties, bool> searcher, string description)
@@ -68,7 +82,7 @@ public abstract class RoomApp : NetDaemonApp
         DebugLog("Searching for {description}", humanDescription);
 
         var states = State.Where(searcher).ToList();
-        
+
         DebugLog("{count} {description} found", states.Count, humanDescription);
 
         foreach (var entity in states)
@@ -82,30 +96,43 @@ public abstract class RoomApp : NetDaemonApp
     private void SetupUnoccupied()
     {
         Entities(MotionSensors)
-            .WhenStateChange((to, from) => @from?.State == "on" && to?.State == "off" && MotionEnabled)
+            .WhenStateChange((to, from) => @from?.State == "on" && to?.State == "off")
+            .Call(NoPresenceAction)
+            .Execute();
+
+        Entities(OccupancySensors)
+            .WhenStateChange((to, from) => @from?.State == "on" && to?.State == "off")
             .Call(NoPresenceAction)
             .Execute();
 
         Entities(Lights)
-            .WhenStateChange(@from: "on", to: "off")
+            .WhenStateChange(to: "off", from: "on")
+            .Call(NoPresenceAction)
+            .Execute();
+
+        Entities(Workstations)
+            .WhenStateChange(to: "off", from: "on")
             .Call(NoPresenceAction)
             .Execute();
 
         Entities(PowerSensors)
-            .WhenStateChange((from, to) => to!.State < State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold)
+            .WhenStateChange((to, from) =>
+                from!.State >= State.Single(s => s.EntityId == to!.EntityId!).Attribute!.active_threshold &&
+                to!.State < State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold)
             .AndNotChangeFor(PowerSensorOffDebounce)
             .Call(NoPresenceAction)
             .Execute();
 
         Entities(MediaPlayerDevices)
-            .WhenStateChange((from, to) =>
-                new List<string> { "idle", "paused" }.Contains(from!.State) && to!.State == "playing")
+            .WhenStateChange((to, from) =>
+                from!.State == "playing" &&
+                new List<string> { "idle", "paused" }.Contains(to!.State))
             .AndNotChangeFor(MediaPlayerStopDebounce)
             .Call(NoPresenceAction)
             .Execute();
 
         Entities(EntryPoints)
-            .WhenStateChange((from, to) =>
+            .WhenStateChange((to, from) =>
                 new List<string> { "on", "closed" }.Contains(from!.State) &&
                 new List<string> { "off", "open" }.Contains(to!.State))
             .Call(NoPresenceAction)
@@ -115,31 +142,45 @@ public abstract class RoomApp : NetDaemonApp
     private void SetupOccupied()
     {
         Entities(MotionSensors)
-            .WhenStateChange((to, from) => @from?.State == "off" && to?.State == "on" && MotionEnabled)
+            .WhenStateChange((to, from) => @from?.State == "off" && to?.State == "on")
+            .Call(PresenceAction)
+            .Execute();
+
+        Entities(OccupancySensors)
+            .WhenStateChange((to, from) => @from?.State == "off" && to?.State == "on")
             .Call(PresenceAction)
             .Execute();
 
         Entities(Lights)
-            .WhenStateChange(@from: "off", to: "on")
+            .WhenStateChange(to: "on", from: "off")
+            .Call(PresenceAction)
+            .Execute();
+
+        Entities(Workstations)
+            .WhenStateChange(to: "on", from: "off")
             .Call(PresenceAction)
             .Execute();
 
         Entities(PowerSensors)
-            .WhenStateChange((from, to) => to!.State >= decimal.Parse(State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold))
+            .WhenStateChange((to, from) =>
+                from!.State < State.Single(s => s.EntityId == to!.EntityId!).Attribute!.active_threshold &&
+                to!.State >= State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold)
             .AndNotChangeFor(PowerSensorOnDebounce)
             .Call(PresenceAction)
             .Execute();
 
         Entities(MediaPlayerDevices)
-            .WhenStateChange((from, to) =>
-                from!.State == "playing" && new List<string> { "idle", "paused" }.Contains(to!.State))
+            .WhenStateChange((to, from) =>
+                new List<string> { "idle", "paused" }.Contains(from!.State) &&
+                to!.State == "playing")
             .AndNotChangeFor(MediaPlayerStopDebounce)
             .Call(PresenceAction)
             .Execute();
 
         Entities(EntryPoints)
-            .WhenStateChange((from, to) => new List<string> { "off", "open" }.Contains(from!.State) &&
-                                           new List<string> { "on", "closed" }.Contains(to!.State))
+            .WhenStateChange((to, from) =>
+                new List<string> { "off", "open" }.Contains(from!.State) &&
+                new List<string> { "on", "closed" }.Contains(to!.State))
             .Call(PresenceAction)
             .Execute();
     }
@@ -148,26 +189,46 @@ public abstract class RoomApp : NetDaemonApp
 
     private async Task NoPresenceAction(string entityId, EntityState? to, EntityState? from)
     {
+        if (ShouldIgnoreMotion(entityId, to!, from!)) return;
+
         DebugLog("No Presence: {entityId} from {fromState} to {toState}", entityId, from?.State, to?.State);
 
-        foreach (var os in State.Where(e => AllOccupancySensors(e) || MediaPlayerDevices(e)))
+        foreach (var os in State.Where(e => AllOccupancySensors(e) || MediaPlayerDevices(e) || Workstations(e)))
         {
-            DebugLog("{os} : {state}", os.EntityId, os.State);
+            DebugLog("{os}:{state}", os.EntityId, os.State);
         }
 
-        DebugLog("Timer is empty: {timer}", Timer == null);
+        foreach (var ps in State.Where(e => PowerSensors(e)))
+        {
+            DebugLog("{ps}:{state}W - Threshold {threshold}W - Above threshold: {threshholdmet}", ps.EntityId, ps.State, ps.Attribute!.active_threshold, ps.State >= ps.Attribute.active_threshold);
+        }
+
+        DebugLog("Occupancy timer is running: {timer}", Timer != null);
 
         if (this.AllStatesAre(AllOccupancySensors, "off", "closed") &&
             !this.AnyStatesAre(MediaPlayerDevices, "playing") &&
+            !this.AnyStatesAre(Workstations, "home") &&
+            !this.AnyStatesAre(PowerSensors, p => p.State > p.Attribute!.active_threshold) && 
             Timer == null)
         {
-            DebugLog("calling no presence action");
+            DebugLog("Calling no presence action");
             await NoPresenceAction();
         }
         else
         {
             DebugLog("No presence criteria not met");
         }
+    }
+
+    private bool ShouldIgnoreMotion(string entityId, EntityState to, EntityState @from)
+    {
+        if (to!.Attribute!.device_class == DeviceClass.Motion.AsString(EnumFormat.DisplayName, EnumFormat.Name) && !MotionEnabled)
+        {
+            DebugLog("Motion disabled, ignoring {entityId} from {fromState} to {toState}", entityId, @from?.State, to?.State);
+            return true;
+        }
+
+        return false;
     }
 
     protected virtual async Task NoPresenceAction()
@@ -177,6 +238,8 @@ public abstract class RoomApp : NetDaemonApp
 
     private async Task PresenceAction(string entityId, EntityState? to, EntityState? from)
     {
+        if (ShouldIgnoreMotion(entityId, to!, from!)) return;
+
         DebugLog("Presence: {entityId} from {fromState} to {toState}", entityId, from?.State, to?.State);
         await PresenceAction();
     }
@@ -189,10 +252,10 @@ public abstract class RoomApp : NetDaemonApp
     public void StartTimer()
     {
         CancelTimer();
-        Timer = Scheduler.RunIn(OccupancyTimeout, () =>
+        Timer = Scheduler.RunIn(OccupancyTimeoutObserved, () =>
         {
             Timer = null;
-            return NoPresenceAction("timer", null, null);
+            return NoPresenceAction("timer", new EntityState{State = "completed"}, new EntityState { State = "active" });
         });
     }
 
@@ -214,7 +277,6 @@ public abstract class RoomApp : NetDaemonApp
         {
             if (!this.AllStatesAre(Lights, "on"))
             {
-                // todo: lux sensitivity
                 action = lights.TurnOn();
             }
 
@@ -236,16 +298,21 @@ public abstract class RoomApp : NetDaemonApp
 
     protected void DebugLog(string message, params object[] data)
     {
-        if (DebugLogEnabled)
+        if (DebugMode)
             Log(LogLevel.Information, message, data);
     }
 
-    private bool IsEntityMatch(IEntityProperties prop, EntityType entityType, params DeviceType[] deviceTypes)
+    private bool IsEntityMatch(IEntityProperties prop, EntityType entityType, params DeviceClass[] deviceClasses)
     {
         var entityString = entityType.AsString(EnumFormat.DisplayName, EnumFormat.Name)!.ToLower();
-        var deviceStrings = deviceTypes.Select(t => t.AsString(EnumFormat.DisplayName, EnumFormat.Name)!.ToLower()).ToList();
+        var deviceStrings = deviceClasses.Select(t => t.AsString(EnumFormat.DisplayName, EnumFormat.Name)!.ToLower()).ToList();
 
-        if (prop.Attribute?.area != RoomPrefix.ToLower())
+        var areas = prop.Attribute?.area;
+
+        if (areas == null)
+            return false;
+
+        if (!((string)areas).Split(",").Contains(RoomPrefix.ToLower()))
             return false;
 
         if (prop.EntityId.ToLower().Split(".")[0] != entityString)
@@ -254,7 +321,8 @@ public abstract class RoomApp : NetDaemonApp
         if (deviceStrings == null || !deviceStrings.Any())
             return true;
 
-        return deviceStrings.Contains(prop.Attribute?.device_class); }
+        return deviceStrings.Contains(prop.Attribute?.device_class);
+    }
 
     private enum EntityType
     {
@@ -264,16 +332,20 @@ public abstract class RoomApp : NetDaemonApp
         Switch,
         [Display(Name = "media_player")]
         MediaPlayer,
-        Sensor
+        Sensor,
+        Cover,
+        [Display(Name = "device_tracker")]
+        WorkStation
     }
 
-    private enum DeviceType
+    private enum DeviceClass
     {
         Motion,
         Power,
         Door,
         Window,
-        Wattage
+        Garage,
+        Occupancy
     }
 }
 

@@ -1,8 +1,10 @@
 using System;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
 
-public class StudyApp : RoomApp
+[UsedImplicitly]
+public class Study : RoomApp
 {
     public string? MonitorSwitch { get; set; }
     public string? PcUsage { get; set; }
@@ -11,7 +13,7 @@ public class StudyApp : RoomApp
     {
         Entity(PcUsage!)
             .WhenStateChange(from: "off", to: "on")
-            .AndNotChangeFor(TimeSpan.FromSeconds(10))
+            .AndNotChangeFor(TimeSpan.FromSeconds(3))
             .Call(PcInUseAction)
             .Execute();
 
@@ -27,7 +29,6 @@ public class StudyApp : RoomApp
     private async Task PcInUseAction(string arg1, EntityState? arg2, EntityState? arg3)
     {
         await Entity(MonitorSwitch!).TurnOn().ExecuteAsync();
-        
     }
 
     private async Task PcNotInUseAction(string arg1, EntityState? arg2, EntityState? arg3)
@@ -36,8 +37,5 @@ public class StudyApp : RoomApp
     }
 
     protected override bool IndoorRoom => true;
-
-    protected override string RoomPrefix => "study";
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(10);
-
 }

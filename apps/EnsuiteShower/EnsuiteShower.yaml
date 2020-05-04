@@ -1,6 +1,2 @@
 ensuiteshower:
   class: EnsuiteShower
-  MotionSensors:
-    - binary_sensor.ensuite_shower_motion_occupancy
-  Lights:
-    - light.ensuite_shower

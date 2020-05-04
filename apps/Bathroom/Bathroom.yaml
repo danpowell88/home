@@ -1,6 +1,2 @@
 bathroom:
   class: Bathroom
-  MotionSensors:
-    - binary_sensor.bathroom_motion_occupancy
-  Lights:
-    - light.bathroom

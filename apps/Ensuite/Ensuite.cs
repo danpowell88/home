@@ -1,5 +1,7 @@
 using System;
+using JetBrains.Annotations;
 
+[UsedImplicitly]
 public class Ensuite : RoomApp
 {
     protected override bool IndoorRoom => true;

@@ -1,9 +1,2 @@
 living:
   class: Living
-  MotionSensors:
-    - binary_sensor.living_room_motion_occupancy
-    - binary_sensor.living_room_2_motion_occupancy
-  Lights:
-    - light.living
-  EntryPoints:
-    - binary_sensor.living_room_stacker_door_contact

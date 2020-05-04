@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -16,6 +16,7 @@
   <ItemGroup>
     <PackageReference Include="Enums.NET" Version="3.0.3" />
     <PackageReference Include="Humanizer" Version="2.8.11" />
+    <PackageReference Include="JetBrains.Annotations" Version="2020.1.0" />
     <PackageReference Include="JoySoftware.NetDaemon.App" Version="0.4.4-alpha" />
     <PackageReference Include="JoySoftware.NetDaemon.DaemonRunner" Version="0.4.4-alpha" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.3" />

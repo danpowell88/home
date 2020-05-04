@@ -1,6 +1,2 @@
 pantry:
   class: Pantry
-  MotionSensors:
-    - binary_sensor.butlers_pantry_motion_occupancy
-  Lights:
-    - light.pantry

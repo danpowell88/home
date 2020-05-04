@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
 
@@ -18,5 +17,10 @@ public static class EntityExtensions
     public static bool AnyStatesAre(this NetDaemonApp app, Func<IEntityProperties, bool> entityFilter, string desiredState)
     {
         return app.State.Where(entityFilter).Any(e => e.State == desiredState);
+    }
+
+    public static bool AnyStatesAre(this NetDaemonApp app, Func<IEntityProperties, bool> entityFilter, Func<IEntityProperties, bool> propertyFilter)
+    {
+        return app.State.Where(entityFilter).Any(propertyFilter);
     }
 }
