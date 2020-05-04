@@ -59,3 +59,6 @@ Trigger vacuum in kitchen after dishwasher on (?)
 #### Media
 Light off when movie playing
 Lights back on when paused / finished
+
+##### Study
+Implement IoTLink for pc idle status override https://gitlab.com/iotlink/iotlink/-/wikis/Addons/Windows-Monitor
