@@ -4,7 +4,7 @@
 ## TODO
 
 ### General
-~~Implement outside rooms (LaundryOutside, Patio, GymOutside, GarageSide, FrontEntry)~~
+* ~~Implement outside rooms (LaundryOutside, Patio, GymOutside, GarageSide, FrontEntry)~~
 * Dont trigger lights to turn on when presence ended, just start timer
 * Ensure light triggers all obey "motion enabled" and rename to be more generic
 * Security notifications when doors/windows/covers opened and sleeping or not home
