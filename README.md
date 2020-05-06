@@ -5,6 +5,8 @@
 
 ### General
 ~~Implement outside rooms (LaundryOutside, Patio, GymOutside, GarageSide, FrontEntry)~~
+Dont trigger lights to turn on when presence ended, just start timer
+Ensure light triggers all obey "motion enabled" and rename to be more generic
 Security notifications when doors/windows/covers opened and sleeping or not home
 Implement concept of supplemental lighting for feature lights
 Implement motion hours of operation override (maybe)
@@ -57,6 +59,7 @@ Migrate dishwasher automation
 Trigger vacuum in kitchen after dishwasher on (?)
 
 #### Media
+Figure out why lights turn off when chair has presence / power detected
 Light off when movie playing
 Lights back on when paused / finished
 
