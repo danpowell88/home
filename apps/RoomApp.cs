@@ -36,6 +36,8 @@ public abstract class RoomApp : NetDaemonApp
                            IsEntityMatch(e, EntityType.Cover, DeviceClass.Garage);
     protected virtual Func<IEntityProperties, bool> AllOccupancySensors => e => MotionSensors(e) && PowerSensors(e) && OccupancySensors(e);
 
+    protected Func<IEntityProperties, bool> MasterOffSwitches =>  e => IsEntityMatch(e, EntityType.Sensor) && e.Attribute!.switch_type == SwitchType.MasterOff.AsString(EnumFormat.DisplayName, EnumFormat.Name)!.ToLower();
+
     protected ISchedulerResult? Timer;
 
     protected virtual bool DebugMode => false;
@@ -55,6 +57,10 @@ public abstract class RoomApp : NetDaemonApp
 
             SetupOccupied();
             SetupUnoccupied();
+
+            Entities(MasterOffSwitches).WhenStateChange(to: "single")
+                .Call(TurnEveryThingOff)
+                .Execute();
         }
         else
         {
@@ -68,6 +74,12 @@ public abstract class RoomApp : NetDaemonApp
         return Task.CompletedTask;
     }
 
+    private async Task TurnEveryThingOff(string arg1, EntityState? arg2, EntityState? arg3)
+    {
+        DebugLog("Turning everything off");
+        await Entities(e => e.EntityId.StartsWith("light.")).TurnOff().ExecuteAsync();
+    }
+
     private void LogDiscoveredEntities()
     {
         if (!DebugMode) return;
@@ -79,6 +91,7 @@ public abstract class RoomApp : NetDaemonApp
         DebugEntityDiscovery(EntryPoints, nameof(EntryPoints));
         DebugEntityDiscovery(Workstations, nameof(Workstations));
         DebugEntityDiscovery(OccupancySensors, nameof(OccupancySensors));
+        DebugEntityDiscovery(MasterOffSwitches, nameof(MasterOffSwitches));
     }
 
     private void DebugEntityDiscovery(Func<IEntityProperties, bool> searcher, string description)
@@ -352,6 +365,12 @@ public abstract class RoomApp : NetDaemonApp
         Window,
         Garage,
         Occupancy
+    }
+
+    private enum SwitchType
+    {
+        MasterOff,
+
     }
 }
 
