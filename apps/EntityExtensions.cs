@@ -6,12 +6,12 @@ public static class EntityExtensions
 {
     public static bool AllStatesAre(this NetDaemonApp app, Func<IEntityProperties, bool> entityFilter, string desiredState)
     {
-       return app.State.Where(entityFilter).All(e => e.State == desiredState);
+       return AllStatesAre(app, entityFilter, new string[] {desiredState});
     }
 
     public static bool AllStatesAre(this NetDaemonApp app, Func<IEntityProperties, bool> entityFilter, params string[] desiredStates)
     {
-        return app.State.Where(entityFilter).All(e =>  desiredStates.ToList().Contains(e.State));
+        return app.State.Where(entityFilter).All(e => desiredStates.ToList().Contains(e.State?.ToString() ?? ""));
     }
 
     public static bool AnyStatesAre(this NetDaemonApp app, Func<IEntityProperties, bool> entityFilter, string desiredState)
