@@ -26,8 +26,6 @@ public class Study : RoomApp
         return base.InitializeAsync();
     }
 
-    protected override bool DebugMode => true;
-
     private async Task PcInUseAction(string arg1, EntityState? arg2, EntityState? arg3)
     {
         await Entity(MonitorSwitch!).TurnOn().ExecuteAsync();

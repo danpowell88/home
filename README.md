@@ -38,19 +38,19 @@
 * Sleeping bayesian sensors
 * Wake / Sleep automations
 * General motion based on wake/sleep
-* Master switches to turn off devices/lights
+* ~~Master switches to turn off devices/lights~~
 * Add double switch for fan
 * Bed accent lighting
 
 #### Ensuite Shower
 * Turn on fan when humidity is high after shower
-* Turn off fan after on for x time
+* ~~Turn off fan after on for x time~~
 
 #### Ensuite Toilet
-* Turn off fan when on for x time
+* ~~Turn off fan when on for x time~~
 
 #### Bathroom
-* Turn off fan when on for x time
+* ~~Turn off fan when on for x time~~
 
 #### Pantry
 * Fridge left open notification
