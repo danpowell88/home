@@ -1,0 +1,7 @@
+gym:
+  class: Gym
+  BikeFanSwitch: switch.gym_bike_fan
+  WeightFanSwitch: switch.gym_weights_fan
+  Training: sensor.gym_trainer_wattage
+  Climate: sensor.gym_temperature
+  FanButton: sensor.gym_switch_click
