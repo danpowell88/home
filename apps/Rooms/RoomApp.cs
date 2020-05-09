@@ -353,35 +353,34 @@ public abstract class RoomApp : NetDaemonApp
 
         return deviceStrings.Contains(prop.Attribute?.device_class);
     }
+}
 
-    private enum EntityType
-    {
-        [Display(Name = "binary_sensor")]
-        BinarySensor,
-        Light,
-        Switch,
-        [Display(Name = "media_player")]
-        MediaPlayer,
-        Sensor,
-        Cover,
-        [Display(Name = "device_tracker")]
-        WorkStation
-    }
+public enum EntityType
+{
+    [Display(Name = "binary_sensor")]
+    BinarySensor,
+    Light,
+    Switch,
+    [Display(Name = "media_player")]
+    MediaPlayer,
+    Sensor,
+    Cover,
+    [Display(Name = "device_tracker")]
+    WorkStation
+}
 
-    private enum DeviceClass
-    {
-        Motion,
-        Power,
-        Door,
-        Window,
-        Garage,
-        Occupancy
-    }
+public enum DeviceClass
+{
+    Motion,
+    Power,
+    Door,
+    Window,
+    Garage,
+    Occupancy
+}
 
-    private enum SwitchType
-    {
-        MasterOff,
-
-    }
+public enum SwitchType
+{
+    MasterOff
 }
 

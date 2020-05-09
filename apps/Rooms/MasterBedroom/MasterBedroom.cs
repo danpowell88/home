@@ -19,11 +19,7 @@ public class MasterBedroom : RoomApp
 
     private async Task TurnEveryThingOff(string arg1, EntityState? arg2, EntityState? arg3)
     {
-        await Entities(e => e.EntityId.StartsWith("light.")).TurnOff().ExecuteAsync();
-
-
-        // TODO turn off switches not marked as always on
-        // alert if any windows doors open
+        await this.TurnEverythingOff(excludeEntities:"fan.masterbedroom_fan");
     }
     protected override bool IndoorRoom => true;
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromHours(2);

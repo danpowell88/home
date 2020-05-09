@@ -30,19 +30,7 @@ public class FrontEntry : RoomApp
 
     private async Task DoorbellAction(string arg1, EntityState? arg2, EntityState? arg3)
     {
-        await CallService("notify", "mobile_app_daniel_s10", new
-        {
-            message = "The doorbell has been rung",
-            title = "Security"
-        });
-
-        // todo: get volume before, raise volume, set volume back to previous
-
-        await CallService("media_player", "play_media", new
-        {
-            entity_id = "media_player.home_2",
-            media_content_id = "http://192.168.1.2:8123/local/doorbell.mp3",
-            media_content_type = "music"
-        });
+        await this.Notify("Security", "The doorbell has been ruing", Notifier.TextNotificationDevice.Daniel);
+        await this.Notify(new Uri("http://192.168.1.2:8123/local/doorbell.mp3"), Notifier.AudioNotificationDevice.Home);
     }
 }
