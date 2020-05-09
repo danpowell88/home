@@ -11,7 +11,7 @@ public class Security : NetDaemonApp
     {
         Entities(e =>
                 new List<DeviceClass> {DeviceClass.Door, DeviceClass.Garage, DeviceClass.Window}.Select(c =>
-                    c.AsString(EnumFormat.DisplayName, EnumFormat.Name)).ToList().Contains(e.Attribute!.device_class))
+                    c.AsString(EnumFormat.DisplayName, EnumFormat.Name)).ToList().Contains(e.Attribute!.device_class) && !e.Attribute?.location == "internal")
             .WhenStateChange((to, from) =>
                 new List<string> {"closed", "off"}.Contains(from!.State) &&
                 new List<string> {"open", "on"}.Contains(to!.State))
@@ -19,6 +19,8 @@ public class Security : NetDaemonApp
             {
                 if (State.Single(e => e.EntityId == "input_boolean.left_home").State == true)
                 {
+                    //TODO: loop and exit early if home detected 
+
                     // Allow some time when arriving home for boolean to change
                     await Task.Delay(new TimeSpan(0, 2, 0));
 
