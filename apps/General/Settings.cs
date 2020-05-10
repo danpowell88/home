@@ -26,7 +26,7 @@ public class Settings : NetDaemonApp
 
     private async Task SetMotionVariables(string entityId, EntityState? to, EntityState? from)
     {
-        if (from!.Attribute!.elevation > 5 && to!.Attribute!.elevation <= 5)
+        if (from!.Attribute!.elevation < 5 && to!.Attribute!.elevation <= 5)
         {
             await Entity("input_boolean.outdoor_motion_enabled").TurnOn().ExecuteAsync();
         }

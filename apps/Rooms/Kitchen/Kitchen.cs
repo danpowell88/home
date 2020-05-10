@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using EnumsNET;
 using JetBrains.Annotations;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
-using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 [UsedImplicitly]
 public class Kitchen : RoomApp
@@ -59,8 +58,9 @@ public class Kitchen : RoomApp
                 await this.Notify(
                     "Kitchen", 
                     "The dishwasher has finished",
-                    Notifier.NotificationCriteria.Home, 
-                    Notifier.TextNotificationDevice.Daniel))
+                    Notifier.NotificationCriteria.Home,
+                    Notifier.NotificationCriteria.NotSleeping,
+                    Notifier.TextNotificationDevice.All))
             .Execute();
 
         return base.InitializeAsync();

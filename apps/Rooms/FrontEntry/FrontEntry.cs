@@ -36,7 +36,13 @@ public class FrontEntry : RoomApp
 
     private async Task DoorbellAction(string arg1, EntityState? arg2, EntityState? arg3)
     {
-        await this.Notify("Security", "The doorbell has been ruing",Notifier.NotificationCriteria.Always, Notifier.TextNotificationDevice.Daniel);
+        await this.Notify(
+            "Security", 
+            "The doorbell has been rung", 
+            Notifier.NotificationCriteria.Always,
+            Notifier.NotificationCriteria.None,
+            Notifier.TextNotificationDevice.All);
+
         await this.Notify(new Uri("http://192.168.1.2:8123/local/doorbell.mp3"), Notifier.AudioNotificationDevice.Home);
     }
 }

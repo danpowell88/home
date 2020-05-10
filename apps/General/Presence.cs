@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
 
@@ -35,7 +33,12 @@ public class Presence : NetDaemonApp
 
                 var daniel = State.Single(e => e.EntityId == "person.daniel");
 
-                async Task Notify() => await this.Notify("Presence", "Marissa has arrived home",Notifier.NotificationCriteria.Always, Notifier.TextNotificationDevice.Daniel);
+                async Task Notify() => await this.Notify(
+                    "Presence", 
+                    "Marissa has arrived home",
+                    Notifier.NotificationCriteria.Always,
+                    Notifier.NotificationCriteria.None,
+                    Notifier.TextNotificationDevice.Daniel);
 
                 // Been home for some time
                 if (DateTime.Now - daniel.LastChanged >= new TimeSpan(0, 2, 0) && daniel.State == "home")

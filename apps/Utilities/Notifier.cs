@@ -1,5 +1,4 @@
 using System;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,7 +11,7 @@ public static class Notifier
     {
         [Display(Name="mobile_app_daniel_s10")]
         Daniel,
-        Marissa,
+        //Marissa,
         All,
     }
 
@@ -57,23 +56,32 @@ public static class Notifier
         NotificationCriteria ttsNotificationCriteria = NotificationCriteria.None, 
         params TextNotificationDevice[] devices)
     {
-        // todo: TTS
-
-        SendNotificationIfCriteriaMet(app, ttsNotificationCriteria, () => );
-        SendNotificationIfCriteriaMet(app, textNotificationCriteria, async () => await SendTextNotifications(app, category, message, textNotificationCriteria, devices));
-
+        await SendNotificationIfCriteriaMet(app, ttsNotificationCriteria, async () => await SendTTSNotifications(app, message));
+        await SendNotificationIfCriteriaMet(app, textNotificationCriteria, async () => await SendTextNotifications(app, category, message, textNotificationCriteria, devices));
     }
 
-    private static void SendNotificationIfCriteriaMet(NetDaemonApp app, NotificationCriteria ttsNotificationCriteria, Action notificationAction)
+    private static async Task SendNotificationIfCriteriaMet(NetDaemonApp app, NotificationCriteria notificationCriteria, Func<Task> notificationAction)
     {
-        if (
-            ttsNotificationCriteria != NotificationCriteria.None ||
-            ttsNotificationCriteria == NotificationCriteria.Home && app.IsAnyoneHome() ||
-            ttsNotificationCriteria == NotificationCriteria.Always ||
-            ttsNotificationCriteria == NotificationCriteria.NotSleeping && !app.IsAnyoneSleeping())
+        switch (notificationCriteria)
         {
-            notificationAction();
+            case NotificationCriteria.None:
+            case NotificationCriteria.Home when !app.IsAnyoneHome():
+            case NotificationCriteria.NotSleeping when app.IsAnyoneSleeping():
+                await Task.CompletedTask;
+                break;
+            default:
+                await notificationAction();
+                break;
         }
+    }
+
+    private static async Task SendTTSNotifications(NetDaemonApp app, string message)
+    {
+        await app.CallService("tts", "amazon_polly_say", new
+        {
+            entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home),
+            message = message
+        });
     }
 
     private static async Task SendTextNotifications(NetDaemonApp app, string category, string message,

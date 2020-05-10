@@ -64,6 +64,7 @@ public class Laundry : RoomApp
                     "Laundry",
                     "The washing machine has finished",
                     Notifier.NotificationCriteria.Always,
+                    Notifier.NotificationCriteria.Home,
                     Notifier.TextNotificationDevice.All))
             .Execute();
 
