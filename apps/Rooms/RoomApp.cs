@@ -326,10 +326,11 @@ public abstract class RoomApp : NetDaemonApp
             await action.ExecuteAsync();
     }
 
+    // ReSharper disable once MemberCanBePrivate.Global
     protected void DebugLog(string message, params object[] data)
     {
         if (DebugMode)
-            Log(LogLevel.Information, $"{Guid.NewGuid()} - {message}", data);
+            Log(LogLevel.Information, message, data);
     }
 
     private bool IsEntityMatch(IEntityProperties prop, EntityType entityType, params DeviceClass[] deviceClasses)

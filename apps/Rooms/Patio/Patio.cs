@@ -5,5 +5,5 @@ using JetBrains.Annotations;
 public class Patio : RoomApp
 {
     protected override bool IndoorRoom => false;
-    protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(10);
+    protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(30);
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
 
 public static class EntityQueries
@@ -22,5 +23,17 @@ public static class EntityQueries
     public static bool AnyStatesAre(this NetDaemonApp app, Func<IEntityProperties, bool> entityFilter, Func<IEntityProperties, bool> propertyFilter)
     {
         return app.State.Where(entityFilter).Any(propertyFilter);
+    }
+
+    public static async Task<bool> TrueNowAndAfter(this NetDaemonApp app, Func<bool> condition, TimeSpan waitDuration)
+    {
+        if (condition())
+        {
+            await Task.Delay(waitDuration);
+
+            return condition();
+        }
+
+        return false;
     }
 }

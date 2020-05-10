@@ -14,6 +14,7 @@ public static class EntityActions
             .TurnOff().ExecuteAsync();
 
         // TODO turn off switches not marked as always on
+        // dont turn off bedroom climate if occupied
         // alert if any windows doors open
     }
 }

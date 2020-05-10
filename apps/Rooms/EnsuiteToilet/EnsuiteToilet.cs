@@ -13,7 +13,10 @@ public class EnsuiteToilet : RoomApp
     {
         Entity("light.ensuitetoilet")
             .WhenStateChange(from: "off", to: "on")
-            .AndNotChangeFor(OccupancyTimeoutObserved).UseEntity("light.ensuitetoilet").TurnOff().Execute();
+            .AndNotChangeFor(OccupancyTimeoutObserved)
+            .UseEntity("light.ensuitetoilet")
+            .TurnOff()
+            .Execute();
 
         return base.InitializeAsync();
     }

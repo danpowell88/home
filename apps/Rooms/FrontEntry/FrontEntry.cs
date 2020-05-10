@@ -20,17 +20,23 @@ public class FrontEntry : RoomApp
             .WhenStateChange((to, from) =>
                 from!.Attribute!.elevation > 4L &&
                 to!.Attribute!.elevation <= 4L &&
-                to!.Attribute!.rising == false
-            ).UseEntity("light.front_pillars").TurnOn().Execute();
+                to!.Attribute!.rising == false)
+            .UseEntity("light.front_pillars")
+            .TurnOn()
+            .Execute();
 
-        Scheduler.RunDaily("21:00:00", async () => await Entity("light.front_pillars").TurnOff().ExecuteAsync());
+        Scheduler.RunDaily("21:00:00", async () => 
+            await 
+                Entity("light.front_pillars")
+                .TurnOff()
+                .ExecuteAsync());
 
         return base.InitializeAsync();
     }
 
     private async Task DoorbellAction(string arg1, EntityState? arg2, EntityState? arg3)
     {
-        await this.Notify("Security", "The doorbell has been ruing", Notifier.TextNotificationDevice.Daniel);
+        await this.Notify("Security", "The doorbell has been ruing",Notifier.NotificationCriteria.Always, Notifier.TextNotificationDevice.Daniel);
         await this.Notify(new Uri("http://192.168.1.2:8123/local/doorbell.mp3"), Notifier.AudioNotificationDevice.Home);
     }
 }

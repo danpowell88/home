@@ -11,29 +11,25 @@ public class Security : NetDaemonApp
     {
         Entities(e =>
                 new List<DeviceClass> {DeviceClass.Door, DeviceClass.Garage, DeviceClass.Window}.Select(c =>
-                    c.AsString(EnumFormat.DisplayName, EnumFormat.Name)).ToList().Contains(e.Attribute!.device_class) && !e.Attribute?.location == "internal")
+                    c.AsString(EnumFormat.DisplayName, EnumFormat.Name)).ToList().Contains(e.Attribute!.device_class) &&
+                !e.Attribute?.location == "internal")
             .WhenStateChange((to, from) =>
                 new List<string> {"closed", "off"}.Contains(from!.State) &&
                 new List<string> {"open", "on"}.Contains(to!.State))
             .Call(async (_, to, from) =>
             {
-                if (State.Single(e => e.EntityId == "input_boolean.left_home").State == true)
+                if (await this.TrueNowAndAfter(
+                    () => State.Single(e => e.EntityId == "input_boolean.left_home").State == true,
+                    new TimeSpan(0, 2, 0)))
                 {
-                    //TODO: loop and exit early if home detected 
-
-                    // Allow some time when arriving home for boolean to change
-                    await Task.Delay(new TimeSpan(0, 2, 0));
-
-                    // and check if its still true after waiting
-                    if (State.Single(e => e.EntityId == "input_boolean.left_home").State == true)
-                    {
-                        await this.Notify(
-                            "Security",
-                            $"The {to!.Attribute!.friendly_name.ToLower()} has been opened",
-                            Notifier.TextNotificationDevice.Daniel);
-                    }
+                    await this.Notify(
+                        "Security",
+                        $"The {to!.Attribute!.friendly_name.ToLower()} has been opened",
+                        Notifier.NotificationCriteria.Always,
+                        Notifier.TextNotificationDevice.Daniel);
                 }
-            });
+            })
+            .Execute();
 
         return base.InitializeAsync();
     }

@@ -12,7 +12,10 @@ public class EnsuiteShower : RoomApp
     {
         Entity("fan.ensuiteshower_fan")
             .WhenStateChange(from: "off", to: "on")
-            .AndNotChangeFor(OccupancyTimeoutObserved).UseEntity("fan.ensuiteshower_fan").TurnOff().Execute();
+            .AndNotChangeFor(OccupancyTimeoutObserved)
+            .UseEntity("fan.ensuiteshower_fan")
+            .TurnOff()
+            .Execute();
 
         return base.InitializeAsync();
     }
