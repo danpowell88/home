@@ -16,15 +16,17 @@ public static class Notifier
         All,
     }
 
+    public enum NotificationCriteria
+    {
+        None,
+        Always,
+        Home,
+        NotSleeping
+    }
+
     public enum AudioNotificationDevice
     {
         [Display(Name="media_player.home_2")]
-        Home
-    }
-
-    public enum NotificationCriteria
-    {
-        Always,
         Home
     }
 
@@ -34,7 +36,7 @@ public static class Notifier
         {
             await app.CallService("media_player", "play_media", new
             {
-                entity_id = device.AsString(EnumFormat.DisplayName, EnumFormat.Name),
+                entity_id = GetAudioNotificationDeviceName(device),
                 media_content_id = audio.ToString(),
                 media_content_type = "music"
             });
@@ -42,10 +44,41 @@ public static class Notifier
         // todo: get volume before, raise volume, set volume back to previous
     }
 
-    public static async Task Notify(this NetDaemonApp app, string category, string message,NotificationCriteria notificationCriteria = NotificationCriteria.Always, params TextNotificationDevice[] devices)
+    private static string GetAudioNotificationDeviceName(AudioNotificationDevice device)
+    {
+        return device.AsString(EnumFormat.DisplayName, EnumFormat.Name)!;
+    }
+
+    public static async Task Notify(
+        this NetDaemonApp app, 
+        string category, 
+        string message,
+        NotificationCriteria textNotificationCriteria = NotificationCriteria.Always, 
+        NotificationCriteria ttsNotificationCriteria = NotificationCriteria.None, 
+        params TextNotificationDevice[] devices)
     {
         // todo: TTS
 
+        SendNotificationIfCriteriaMet(app, ttsNotificationCriteria, () => );
+        SendNotificationIfCriteriaMet(app, textNotificationCriteria, async () => await SendTextNotifications(app, category, message, textNotificationCriteria, devices));
+
+    }
+
+    private static void SendNotificationIfCriteriaMet(NetDaemonApp app, NotificationCriteria ttsNotificationCriteria, Action notificationAction)
+    {
+        if (
+            ttsNotificationCriteria != NotificationCriteria.None ||
+            ttsNotificationCriteria == NotificationCriteria.Home && app.IsAnyoneHome() ||
+            ttsNotificationCriteria == NotificationCriteria.Always ||
+            ttsNotificationCriteria == NotificationCriteria.NotSleeping && !app.IsAnyoneSleeping())
+        {
+            notificationAction();
+        }
+    }
+
+    private static async Task SendTextNotifications(NetDaemonApp app, string category, string message,
+        NotificationCriteria textNotificationCriteria, TextNotificationDevice[] devices)
+    {
         var effectiveDevices = devices.ToList();
 
         if (devices.Contains(TextNotificationDevice.All))
@@ -56,7 +89,7 @@ public static class Notifier
 
         foreach (var device in effectiveDevices)
         {
-            if (notificationCriteria == NotificationCriteria.Home)
+            if (textNotificationCriteria == NotificationCriteria.Home)
             {
                 var person = app.State.Single(e => e.EntityId == $"person.{device.AsString(EnumFormat.Name)}".ToLower());
 

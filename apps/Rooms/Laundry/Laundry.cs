@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using EnumsNET;
 using JetBrains.Annotations;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
-using Microsoft.Extensions.Logging;
 
 [UsedImplicitly]
 public class Laundry : RoomApp
