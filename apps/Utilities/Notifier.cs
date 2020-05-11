@@ -77,11 +77,16 @@ public static class Notifier
 
     private static async Task SendTTSNotifications(NetDaemonApp app, string message)
     {
-        await app.CallService("tts", "amazon_polly_say", new
-        {
-            entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home),
-            message = message
-        });
+        // send TTS as a text message right now until they are stable
+        await SendTextNotifications(app, "TTS TEST", message, NotificationCriteria.Always,
+            new[] {TextNotificationDevice.Daniel});
+
+
+        //await app.CallService("tts", "amazon_polly_say", new
+        //{
+        //    entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home),
+        //    message = message
+        //});
     }
 
     private static async Task SendTextNotifications(NetDaemonApp app, string category, string message,

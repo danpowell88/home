@@ -34,6 +34,7 @@ public class Kitchen : RoomApp
             .WhenStateChange((to, from) => 
                 GetDishwasherWattage(to!) < 1D && 
                 GetDishwasherState() == DishwasherState.Running)
+            .AndNotChangeFor(new TimeSpan(0,1,0))
             .Call(async (_, __, ___) =>
                 await InputSelects(_dishwasherStatus).SetOption(DishwasherState.Clean).ExecuteAsync())
             .Execute();
@@ -58,7 +59,7 @@ public class Kitchen : RoomApp
                 await this.Notify(
                     "Kitchen", 
                     "The dishwasher has finished",
-                    Notifier.NotificationCriteria.Home,
+                    Notifier.NotificationCriteria.NotSleeping,
                     Notifier.NotificationCriteria.NotSleeping,
                     Notifier.TextNotificationDevice.All))
             .Execute();

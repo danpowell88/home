@@ -18,9 +18,9 @@ public class FrontEntry : RoomApp
 
         Entity("sun.sun")
             .WhenStateChange((to, from) =>
-                from!.Attribute!.elevation > 4L &&
-                to!.Attribute!.elevation <= 4L &&
-                to!.Attribute!.rising == false)
+                to!.Attribute!.elevation <= 2.5 &&
+                to!.Attribute!.rising == false &&
+                DateTime.Now.Hour < 21)
             .UseEntity("light.front_pillars")
             .TurnOn()
             .Execute();

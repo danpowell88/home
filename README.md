@@ -7,14 +7,13 @@
 * ~~Implement outside rooms (LaundryOutside, Patio, GymOutside, GarageSide, FrontEntry)~~
 * ~~Dont trigger lights to turn on when presence ended, just start timer~~
 * ~~Ensure light triggers all obey "motion enabled" and rename to be more generic~~
-* Security notifications when doors/windows/covers opened and sleeping or not home
+* ~~Security notifications when doors/windows/covers opened and sleeping or not home~~
 * Implement concept of supplemental lighting for feature lights
-* Implement motion hours of operation override (maybe)
 * Ignore lights on based on lux
 * Set google home volume based on time of day / bed presence
 
 ### Presence
-* Turn off lights and devices when left home
+* Turn off ~~lights~~ and devices when left home
 * Implement concept of "always on" switches so they dont get switched off by automations
 
 ### Cooling / Heating
