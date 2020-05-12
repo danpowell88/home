@@ -20,7 +20,7 @@
 
 ### Notifications
 * TTS and app notification depending on presence / occupancy
-* ~~Low batteries~~
+* ~~Low batteries~~ -TO BE TESTED
 * Device dropped from zigbee/wifi for x period
 * New device added to zigbee (need to add mqtt connection to ND - ON HOLD) 
 * Traffic to work notification
@@ -29,7 +29,7 @@
 ### Room Specific
 
 #### Laundry
-* Migrate washing machine automation
+* Migrate washing machine automation - TO BE TESTED
 
 #### Master Bedroom
 * ~~Get bed occupancy working~~
