@@ -1,6 +1,5 @@
 # My House
 
-
 ## TODO
 
 ### General
@@ -21,9 +20,9 @@
 
 ### Notifications
 * TTS and app notification depending on presence / occupancy
-* Low batteries
+* ~~Low batteries~~
 * Device dropped from zigbee/wifi for x period
-* New device added to zigbee 
+* New device added to zigbee (need to add mqtt connection to ND - ON HOLD) 
 * Traffic to work notification
 * Weather notifications
 
@@ -33,13 +32,14 @@
 * Migrate washing machine automation
 
 #### Master Bedroom
-* Get bed occupancy working
+* ~~Get bed occupancy working~~
 * Sleeping bayesian sensors
 * Wake / Sleep automations
 * General motion based on wake/sleep
 * ~~Master switches to turn off devices/lights~~
 * Add double switch for fan
 * Bed accent lighting
+* Turn on / of lights depending on if bed state is off and has been off for > 10 minutes
 
 #### Ensuite Shower
 * Turn on fan when humidity is high after shower
@@ -55,11 +55,11 @@
 * Fridge left open notification
 
 #### Kitchen
-* Migrate dishwasher automation
+* ~~Migrate dishwasher automation~~
 * Trigger vacuum in kitchen after dishwasher on (?)
 
 #### Media
-* ~Figure out why lights turn off when chair has presence / power detected~
+* ~~Figure out why lights turn off when chair has presence / power detected~~
 * Light off when movie playing
 * Lights back on when paused / finished
 

@@ -33,10 +33,11 @@ public class Settings : NetDaemonApp
         Log(LogLevel.Information, "elevation: {elevation} rising:{rising}", to.Attribute.elevation, to.Attribute.rising);
 
         Log(LogLevel.Information, "< 1.72 {result}", to!.Attribute!.elevation <= 1.72);
-        Log(LogLevel.Information, "< 1.72 {result}", to!.Attribute!.elevation >= -17.7);
-        Log(LogLevel.Information, "rising {result} {type}", to!.Attribute!.rising == false, to!.Attribute.rising);
+        Log(LogLevel.Information, ">= -17.7 {result}", to!.Attribute!.elevation >= -17.7);
+        Log(LogLevel.Information, "rising {result} {type}", to!.Attribute!.rising == false, to!.Attribute.rising.GetType());
 
-        if (to!.Attribute!.elevation <= 1.72 && to!.Attribute!.elevation >= -17.7 && to!.Attribute!.rising == false)
+        if ((to!.Attribute!.elevation <= 1.72 &&  to!.Attribute!.rising == false) ||
+            to!.Attribute!.elevation >= -17.7 && to!.Attribute!.rising == true)
         {
             Log(LogLevel.Information, "outdoor motion enabled");
             await Entity("input_boolean.outdoor_motion_enabled").TurnOn().ExecuteAsync();
