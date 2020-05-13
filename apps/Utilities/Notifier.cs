@@ -33,6 +33,11 @@ public static class Notifier
     {
         foreach (var device in devices)
         {
+            await app.CallService("media_player", "turn_on", new
+            {
+                entity_id = GetAudioNotificationDeviceName(device)
+            }, true);
+
             await app.CallService("media_player", "play_media", new
             {
                 entity_id = GetAudioNotificationDeviceName(device),
@@ -81,6 +86,10 @@ public static class Notifier
         await SendTextNotifications(app, "TTS TEST", message, NotificationCriteria.Always,
             new[] {TextNotificationDevice.Daniel});
 
+        //await app.CallService("media_player", "turn_on", new
+        //{
+        //    entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home)
+        //}, true);
 
         //await app.CallService("tts", "amazon_polly_say", new
         //{

@@ -49,7 +49,7 @@ public abstract class RoomApp : NetDaemonApp
         GetState("input_boolean.indoor_motion_enabled")?.State == "on" :
         GetState("input_boolean.outdoor_motion_enabled")?.State == "on";
 
-    public override Task InitializeAsync()
+    public override async Task InitializeAsync()
     {
         if (AutoDiscoverDevices)
         {
@@ -60,7 +60,7 @@ public abstract class RoomApp : NetDaemonApp
             SetupUnoccupied();
 
             Entities(MasterOffSwitches).WhenStateChange(to: "single")
-                .Call(TurnEveryThingOff)
+                .Call(async (_, __, ___) => await TurnEveryThingOff())
                 .Execute();
         }
         else
@@ -70,15 +70,12 @@ public abstract class RoomApp : NetDaemonApp
 
         // Start a timer so that if restarting netdaemon (and existing timers are lost) and lights are on
         // they will get turned off 
-        StartTimer();
-
-        return Task.CompletedTask;
+        await StartTimer();
     }
 
-    private async Task TurnEveryThingOff(string arg1, EntityState? arg2, EntityState? arg3)
+    protected virtual async Task TurnEveryThingOff()
     {
-        DebugLog("Turning everything off");
-        await Entities(e => e.EntityId.StartsWith("light.")).TurnOff().ExecuteAsync();
+        await this.TurnEverythingOff();
     }
 
     private void LogDiscoveredEntities()
@@ -205,9 +202,7 @@ public abstract class RoomApp : NetDaemonApp
     private async Task StartOccupancyTimer(string entityId, EntityState? to, EntityState? from)
     {
         DebugLog("Starting occupancy timer due to: {entityId} from {fromState} to {toState}", entityId, from?.State, to?.State);
-        StartTimer();
-
-        await Task.CompletedTask;
+        await StartTimer();
     }
 
     #endregion
@@ -262,11 +257,11 @@ public abstract class RoomApp : NetDaemonApp
 
     protected virtual async Task PresenceAction()
     {
-        StartTimer();
+        await StartTimer();
         await ToggleLights(true);
     }
 
-    public void StartTimer()
+    protected async Task StartTimer()
     {
         CancelTimer();
 
@@ -279,6 +274,8 @@ public abstract class RoomApp : NetDaemonApp
             TimerEndDate = null;
             return NoPresenceAction("timer", new EntityState{State = "completed"}, new EntityState { State = "active" });
         });
+
+        await Task.CompletedTask;
     }
 
     public void CancelTimer()

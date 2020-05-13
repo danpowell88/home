@@ -13,4 +13,9 @@ public static class PresenceQueries
         // todo: bayesian sensor to detect either sleeping
         return app.State.Single(e => e.EntityId == "binary_sensor.bed_occupancy").State == "on";
     }
+
+    public static bool IsAnyoneInBed(this NetDaemonApp app)
+    {
+        return app.State.Single(e => e.EntityId == "binary_sensor.bed_occupancy").State == "on";
+    }
 }

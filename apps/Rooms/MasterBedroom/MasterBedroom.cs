@@ -9,33 +9,31 @@ public class MasterBedroom : RoomApp
 {
     public override Task InitializeAsync()
     {
-        Entity("sensor.daniel_bedroom_switch_click", "sensor.riss_bedroom_switch_click")
-            .WhenStateChange(to: "single")
-            .Call(TurnEveryThingOff)
-            .Execute();
+        Entity("binary_sensor.bed_occupancy")
+            .WhenStateChange(from: "on", to: "off")
+            .Call((_, __, ___) => StartTimer());
 
-        base.InitializeAsync();
-
-        return Task.CompletedTask;
+        return base.InitializeAsync();
     }
 
-    private async Task TurnEveryThingOff(string arg1, EntityState? arg2, EntityState? arg3)
+    protected override async Task TurnEveryThingOff()
     {
         await this.TurnEverythingOff(excludeEntities: "fan.masterbedroom_fan");
     }
 
     protected override bool IndoorRoom => true;
-    protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(60);
+    protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(15);
 
     protected override bool PresenceLightingEnabled
     {
         get
         {
-            var bedState = State.Single(e => e.EntityId == "binary_sensor.bed_occupancy").State;
+            var bed = State.Single(e => e.EntityId == "binary_sensor.bed_occupancy");
+            var bedState = bed.State;
 
-            return base.PresenceLightingEnabled && bedState != null && bedState != "on";
+            // only control lighting when no one in bed and has been that way for 10 mins
+            return base.PresenceLightingEnabled && bedState != null && bedState != "on" &&
+                   DateTime.Now - bed.LastChanged > TimeSpan.FromMinutes(10);
         }
     }
-
-    //protected override bool DebugMode => true;
 }

@@ -14,15 +14,15 @@ public class Media : RoomApp
         // Lights off when movie is playing
         Entity("media_player.media_emby")
             .WhenStateChange((to, from) =>
-                from.State != null && from.State != "playing" && to.State == "playing"
-                && from.Attribute.media_content_type == "movie")
+                from!.State != null && from.State != "playing" && to!.State == "playing"
+                && from.Attribute!.media_content_type == "movie")
             .AndNotChangeFor(TimeSpan.FromMinutes(3))
             .UseEntities(e => e.EntityId.StartsWith("light.")).TurnOff().Execute();
 
         // Lights on when 5 minutes before end of movie
         Entity("media_player.media_emby")
             .WhenStateChange((to, from) =>
-                to.Attribute.media_content_type == "movie" &&
+                to!.Attribute!.media_content_type == "movie" &&
                 to.Attribute.media_duration - to.Attribute.media_position == 300 &&
                 to.State == "playing")
             .UseEntities(e => e.EntityId.StartsWith("light.media")).TurnOn().Execute();
@@ -30,8 +30,8 @@ public class Media : RoomApp
         // Light toilet when paused
         Entity("media_player.media_emby")
             .WhenStateChange((to, from) =>
-                to.Attribute.media_content_type == "movie" &&
-                from.State == "playing" &&
+                to!.Attribute!.media_content_type == "movie" &&
+                from!.State == "playing" &&
                 to.State == "paused")
             .UseEntities(new List<string> {"light.media", "light.dining", "light.hallway", "light.toilet"}).TurnOn()
             .Execute();

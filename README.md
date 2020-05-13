@@ -21,7 +21,7 @@
 ### Notifications
 * TTS and app notification depending on presence / occupancy
 * ~~Low batteries~~ -TO BE TESTED
-* Device dropped from zigbee/wifi for x period
+* ~~Device dropped from zigbee/wifi for x period~~ - TO BE TESTED
 * New device added to zigbee (need to add mqtt connection to ND - ON HOLD) 
 * Traffic to work notification
 * Weather notifications
@@ -29,7 +29,7 @@
 ### Room Specific
 
 #### Laundry
-* Migrate washing machine automation - TO BE TESTED
+* ~~Migrate washing machine automation~~ - TO BE TESTED
 
 #### Master Bedroom
 * ~~Get bed occupancy working~~
@@ -43,13 +43,13 @@
 
 #### Ensuite Shower
 * Turn on fan when humidity is high after shower
-* ~~Turn off fan after on for x time~~
+* ~~Turn off fan after on for x time~~  - TO BE TESTED
 
 #### Ensuite Toilet
-* ~~Turn off fan when on for x time~~
+* ~~Turn off fan when on for x time~~ - TO BE TESTED
 
 #### Bathroom
-* ~~Turn off fan when on for x time~~
+* ~~Turn off fan when on for x time~~ - TO BE TESTED
 
 #### Pantry
 * Fridge left open notification
@@ -60,8 +60,11 @@
 
 #### Media
 * ~~Figure out why lights turn off when chair has presence / power detected~~
-* Light off when movie playing
-* Lights back on when paused / finished
+* ~~Light off when movie playing~~ - TO BE TESTED
+* ~~Lights back on when paused / finished~~ - TO BE TESTED
 
-##### Study
+#### Study
 * Implement IoTLink for pc idle status override https://gitlab.com/iotlink/iotlink/-/wikis/Addons/Windows-Monitor
+
+#### Garage
+* Door left open notification

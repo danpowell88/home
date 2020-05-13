@@ -20,7 +20,9 @@ public class FrontEntry : RoomApp
             .WhenStateChange((to, from) =>
                 to!.Attribute!.elevation <= 2.5 &&
                 to!.Attribute!.rising == false &&
-                DateTime.Now.Hour < 21)
+                DateTime.Now.Hour < 21 &&
+                !this.IsAnyoneSleeping()
+                )
             .UseEntity("light.front_pillars")
             .TurnOn()
             .Execute();
