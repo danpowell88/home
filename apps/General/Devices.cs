@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 [UsedImplicitly]
 public class Devices : NetDaemonApp
@@ -33,27 +34,29 @@ public class Devices : NetDaemonApp
         });
 
         // alert when any entities goes unavailable for more than the defined time, only alert once every 6 hours
-        Scheduler.RunEvery(TimeSpan.FromHours(1), async () =>
+        Scheduler.RunEvery(TimeSpan.FromMinutes(60), async () =>
         {
-            var unavailableEntitiesPastTimeout = State.Where(e => e.State == null &&
-                             e.Attribute!.availability_timeout != null &&
-                             DateTime.Now - e.LastChanged >
-                                new TimeSpan(0, e.Attribute!.availability_timeout, 0));
+            var unavailableEntitiesPastTimeout = State.Where(e => e.State is null
+                                                                  && e.Attribute!.availability_timeout != null &&
+                                                                  DateTime.Now - e.LastChanged >
+                                                                  new TimeSpan(0, e.Attribute!.availability_timeout, 0)).ToList();
+
+            Log(LogLevel.Information, "Found {count} entities post availability timeout",
+                unavailableEntitiesPastTimeout.Count);
 
             var notifications = await GetDataAsync<Dictionary<string, DateTime>>(TimeoutNotifications);
 
-            foreach (var entity in unavailableEntitiesPastTimeout)
+            foreach (var entity in unavailableEntitiesPastTimeout
+                .Where(entity => notifications is null || 
+                                 !notifications.ContainsKey(entity.EntityId) || 
+                                 DateTime.Now - notifications[entity.EntityId] > TimeSpan.FromHours(6)))
             {
-                if (notifications == null || !notifications.ContainsKey(entity.EntityId) ||
-                    DateTime.Now - notifications[entity.EntityId] > TimeSpan.FromHours(6))
-                {
-                    await this.Notify("Device Maintenance",
-                        $"The {entity.Attribute?.friendly_name ?? entity.EntityId} has reached its availability timeout, it may be experiencing issues",
-                        Notifier.NotificationCriteria.Always
-                        , Notifier.NotificationCriteria.None, Notifier.TextNotificationDevice.Daniel);
+                await this.Notify("Device Maintenance",
+                    $"The {entity.Attribute?.friendly_name ?? entity.EntityId} has reached its availability timeout, it may be experiencing issues",
+                    Notifier.NotificationCriteria.Always
+                    , Notifier.NotificationCriteria.None, Notifier.TextNotificationDevice.Daniel);
 
-                    notifications![entity.EntityId] = DateTime.Now;
-                }
+                notifications![entity.EntityId] = DateTime.Now;
             }
 
             await SaveDataAsync(TimeoutNotifications, notifications);
