@@ -34,8 +34,8 @@ public class Garage : RoomApp
                     Notifier.NotificationCriteria.Home,
                     new[]
                     {
-                        new Notifier.NotificationAction {Title = "Close", EventId = "close_garage"},
-                        new Notifier.NotificationAction {Title = "Silence", EventId = "silence_garage"}
+                        new Notifier.NotificationAction ("close_garage", "Close"),
+                        new Notifier.NotificationAction ("silence_garage", "Silence")
                     },
                     $"https://home.danielpowell.net/local/snapshots/tmp/{filename}",
                     Notifier.TextNotificationDevice.All);

@@ -39,6 +39,12 @@ public static class Notifier
                 entity_id = GetAudioNotificationDeviceName(device)
             }, true);
 
+            await app.CallService("media_player", "volume_set", new
+            {
+                entity_id = GetAudioNotificationDeviceName(device),
+                volume_level = 1
+            }, true);
+
             await app.CallService("media_player", "play_media", new
             {
                 entity_id = GetAudioNotificationDeviceName(device),
@@ -98,19 +104,24 @@ public static class Notifier
     private static async Task SendTTSNotifications(NetDaemonApp app, string message)
     {
         // send TTS as a text message right now until they are stable
-        await SendTextNotifications(app, "TTS TEST", message, NotificationCriteria.Always,
-            new[] {TextNotificationDevice.Daniel});
+        //await SendTextNotifications(app, "TTS TEST", message, NotificationCriteria.Always, new[] {TextNotificationDevice.Daniel});
 
-        //await app.CallService("media_player", "turn_on", new
-        //{
-        //    entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home)
-        //}, true);
+        await app.CallService("media_player", "turn_on", new
+        {
+            entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home)
+        }, true);
 
-        //await app.CallService("tts", "amazon_polly_say", new
-        //{
-        //    entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home),
-        //    message = message
-        //});
+        await app.CallService("media_player", "volume_set", new
+        {
+            entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home),
+            volume_level = 1
+        }, true);
+
+        await app.CallService("tts", "amazon_polly_say", new
+        {
+            entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home),
+            message = message
+        });
     }
 
     private static async Task SendTextNotifications(NetDaemonApp app, string category, string message,
@@ -139,7 +150,7 @@ public static class Notifier
             {
                 message = message,
                 title = category,
-                actions = notificationActions.Select(n => new {action = n.EventId, title = n.Title}),
+                actions = notificationActions?.Select(n => new {action = n.EventId, title = n.Title}),
                 image = imageUrl
             });
         }
@@ -147,6 +158,12 @@ public static class Notifier
 
     public class NotificationAction
     {
+        public NotificationAction(string eventId, string title)
+        {
+            EventId = eventId;
+            Title = title;
+        }
+
         public string EventId { get; set; }
         public string Title { get; set; }
     }
