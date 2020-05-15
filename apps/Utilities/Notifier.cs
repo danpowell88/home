@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
@@ -54,6 +55,20 @@ public static class Notifier
     }
 
     public static async Task Notify(
+        this NetDaemonApp app,
+        string category,
+        string message,
+        NotificationCriteria textNotificationCriteria = NotificationCriteria.Always,
+        NotificationCriteria ttsNotificationCriteria = NotificationCriteria.None,
+        NotificationAction[]? notificationActions = null,
+        string? imageUrl = null,
+        params TextNotificationDevice[] devices)
+    {
+        await SendNotificationIfCriteriaMet(app, ttsNotificationCriteria, async () => await SendTTSNotifications(app, message));
+        await SendNotificationIfCriteriaMet(app, textNotificationCriteria, async () => await SendTextNotifications(app, category, message, textNotificationCriteria, devices, notificationActions, imageUrl));
+    }
+
+    public static async Task Notify(
         this NetDaemonApp app, 
         string category, 
         string message,
@@ -99,7 +114,7 @@ public static class Notifier
     }
 
     private static async Task SendTextNotifications(NetDaemonApp app, string category, string message,
-        NotificationCriteria textNotificationCriteria, TextNotificationDevice[] devices)
+        NotificationCriteria textNotificationCriteria, TextNotificationDevice[] devices, NotificationAction[]? notificationActions = null, string? imageUrl = null)
     {
         var effectiveDevices = devices.ToList();
 
@@ -119,11 +134,20 @@ public static class Notifier
                     continue;
             }
 
+            // todo: support iphone and lookup notification type
             await app.CallService("notify", device.AsString(EnumFormat.DisplayName, EnumFormat.Name)!, new
             {
                 message = message,
-                title = category
+                title = category,
+                actions = notificationActions.Select(n => new {action = n.EventId, title = n.Title}),
+                image = imageUrl
             });
         }
+    }
+
+    public class NotificationAction
+    {
+        public string EventId { get; set; }
+        public string Title { get; set; }
     }
 }

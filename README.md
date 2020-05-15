@@ -39,7 +39,7 @@
 * ~~Master switches to turn off devices/lights~~
 * Add double switch for fan
 * Bed accent lighting
-* Turn on / of lights depending on if bed state is off and has been off for > 10 minutes
+* ~~Turn on / of lights depending on if bed state is off and has been off for > 10 minutes~~
 
 #### Ensuite Shower
 * Turn on fan when humidity is high after shower

@@ -38,4 +38,14 @@ public class Media : RoomApp
 
         return base.InitializeAsync();
     }
+
+    protected override bool PresenceLightingEnabled
+    {
+        get
+        {
+            var state = GetState("media_player.media_emby")!.State;
+
+            return state != "playing" && base.PresenceLightingEnabled;
+        }
+    }
 }
