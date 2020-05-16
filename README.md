@@ -68,4 +68,4 @@
 * Implement IoTLink for pc idle status override https://gitlab.com/iotlink/iotlink/-/wikis/Addons/Windows-Monitor
 
 #### Garage
-* Door left open notification
+* ~~Door left open notification~~
