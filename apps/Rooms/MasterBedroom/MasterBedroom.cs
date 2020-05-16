@@ -36,4 +36,6 @@ public class MasterBedroom : RoomApp
                    DateTime.Now - bed.LastChanged > TimeSpan.FromMinutes(10);
         }
     }
+
+    protected override bool SecondaryLightingEnabled => false;
 }

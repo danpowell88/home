@@ -29,7 +29,14 @@ public abstract class RoomApp : NetDaemonApp
     public Func<IEntityProperties, bool> OccupancySensors => e => IsEntityMatch(e, EntityType.BinarySensor, DeviceClass.Occupancy);
     public Func<IEntityProperties, bool> PowerSensors => e => IsEntityMatch(e, EntityType.Sensor, DeviceClass.Power) && e.Attribute!.active_threshold != null;
     public Func<IEntityProperties, bool> MediaPlayerDevices => e => IsEntityMatch(e, EntityType.MediaPlayer);
-    public Func<IEntityProperties, bool> Lights => e => IsEntityMatch(e, EntityType.Light);
+    public Func<IEntityProperties, bool> PrimaryLights =>
+        e => IsEntityMatch(e, EntityType.Light) && (string?)e.Attribute!.type != "secondary";
+
+    public Func<IEntityProperties, bool> SecondaryLights =>
+        e => IsEntityMatch(e, EntityType.Light) && (string?)e.Attribute!.type == "secondary";
+
+    public Func<IEntityProperties, bool> Lights => e => PrimaryLights(e) || SecondaryLights(e);
+
     public Func<IEntityProperties, bool> Workstations => e => IsEntityMatch(e, EntityType.WorkStation);
     public Func<IEntityProperties, bool> EntryPoints =>
         e => IsEntityMatch(e, EntityType.BinarySensor, DeviceClass.Door, DeviceClass.Window) ||
@@ -48,6 +55,10 @@ public abstract class RoomApp : NetDaemonApp
     protected virtual bool PresenceLightingEnabled => IndoorRoom ?
         GetState("input_boolean.indoor_motion_enabled")?.State == "on" :
         GetState("input_boolean.outdoor_motion_enabled")?.State == "on";
+
+    protected virtual bool SecondaryLightingEnabled => false;
+
+    protected virtual Dictionary<string, object>? SecondaryLightingAttributes => null;
 
     public override async Task InitializeAsync()
     {
@@ -85,7 +96,8 @@ public abstract class RoomApp : NetDaemonApp
         DebugEntityDiscovery(MotionSensors, nameof(MotionSensors));
         DebugEntityDiscovery(PowerSensors, nameof(PowerSensors));
         DebugEntityDiscovery(MediaPlayerDevices, nameof(MediaPlayerDevices));
-        DebugEntityDiscovery(Lights, nameof(Lights));
+        DebugEntityDiscovery(PrimaryLights, nameof(PrimaryLights));
+        DebugEntityDiscovery(SecondaryLights, nameof(SecondaryLights));
         DebugEntityDiscovery(EntryPoints, nameof(EntryPoints));
         DebugEntityDiscovery(Workstations, nameof(Workstations));
         DebugEntityDiscovery(OccupancySensors, nameof(OccupancySensors));
@@ -293,34 +305,38 @@ public abstract class RoomApp : NetDaemonApp
     [DisableLog(SupressLogType.MissingExecute)]
     public async Task ToggleLights(bool on)
     {
-        if (!PresenceLightingEnabled)
-        {
-            DebugLog("Presence lighting disabled, not settings lights to: {state}", on ? "on" : "off");
-            return;
-        }
-
         DebugLog("Toggle lights: {on}", on);
 
-        var lights = Entities(Lights);
-
-        IAction? action = null;
+        var primaryLights = Entities(PrimaryLights);
+        var secondaryLights = Entities(SecondaryLights);
         if (@on)
         {
-            if (!this.AllStatesAre(Lights, "on"))
+            if (!this.AllStatesAre(PrimaryLights, "on") && PresenceLightingEnabled)
             {
-                action = lights.TurnOn();
+                await primaryLights.TurnOn().ExecuteAsync();
+            }
+
+            if (!this.AllStatesAre(SecondaryLights, "on") && SecondaryLightingEnabled)
+            {
+                var action = secondaryLights.TurnOn();
+
+                if (SecondaryLightingAttributes != null)
+                {
+                    action = SecondaryLightingAttributes.Aggregate(action,
+                        (current, attribute) => current.WithAttribute(attribute.Key, attribute.Value));
+                }
+
+                await action.ExecuteAsync();
             }
         }
         else if (!on)
         {
-            if (!this.AllStatesAre(Lights, "off"))
+            if (!this.AllStatesAre(PrimaryLights, "off") && PresenceLightingEnabled)
             {
-                action = lights.TurnOff();
+                await primaryLights.TurnOff().ExecuteAsync();
+                await secondaryLights.TurnOff().ExecuteAsync();
             }
         }
-
-        if (action != null)
-            await action.ExecuteAsync();
     }
 
     // ReSharper disable once MemberCanBePrivate.Global
