@@ -64,10 +64,10 @@ public static class Notifier
         this NetDaemonApp app,
         string category,
         string message,
-        NotificationCriteria textNotificationCriteria = NotificationCriteria.Always,
-        NotificationCriteria ttsNotificationCriteria = NotificationCriteria.None,
-        NotificationAction[]? notificationActions = null,
-        string? imageUrl = null,
+        NotificationCriteria textNotificationCriteria,
+        NotificationCriteria ttsNotificationCriteria,
+        NotificationAction[]? notificationActions,
+        string? imageUrl,
         params TextNotificationDevice[] devices)
     {
         await SendNotificationIfCriteriaMet(app, ttsNotificationCriteria, async () => await SendTTSNotifications(app, message));
@@ -82,8 +82,19 @@ public static class Notifier
         NotificationCriteria ttsNotificationCriteria = NotificationCriteria.None, 
         params TextNotificationDevice[] devices)
     {
-        await SendNotificationIfCriteriaMet(app, ttsNotificationCriteria, async () => await SendTTSNotifications(app, message));
-        await SendNotificationIfCriteriaMet(app, textNotificationCriteria, async () => await SendTextNotifications(app, category, message, textNotificationCriteria, devices));
+        await Notify(app, category, message, textNotificationCriteria, ttsNotificationCriteria, null, null, devices);
+    }
+
+    public static async Task Notify(
+        this NetDaemonApp app,
+        string category,
+        string message,
+        NotificationCriteria textNotificationCriteria,
+        NotificationCriteria ttsNotificationCriteria,
+        NotificationAction[] notificationActions,
+        params TextNotificationDevice[] devices)
+    {
+        await Notify(app, category, message, textNotificationCriteria, ttsNotificationCriteria, notificationActions, null, devices);
     }
 
     private static async Task SendNotificationIfCriteriaMet(NetDaemonApp app, NotificationCriteria notificationCriteria, Func<Task> notificationAction)
@@ -150,8 +161,11 @@ public static class Notifier
             {
                 message = message,
                 title = category,
-                actions = notificationActions?.Select(n => new {action = n.EventId, title = n.Title}),
-                image = imageUrl
+                data = new
+                {
+                    actions = notificationActions?.Select(n => new {action = n.EventId, title = n.Title}),
+                    image = imageUrl
+                }
             });
         }
     }

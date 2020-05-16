@@ -14,6 +14,7 @@
 ### Presence
 * Turn off ~~lights~~ and devices when left home
 * Implement concept of "always on" switches so they dont get switched off by automations
+* Disable motion when no one home
 
 ### Cooling / Heating
 * Enable/Disable fan / air conditioning when room has presence for x and temperature is x

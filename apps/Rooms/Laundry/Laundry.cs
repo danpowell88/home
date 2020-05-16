@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using EnumsNET;
 using JetBrains.Annotations;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 [UsedImplicitly]
 public class Laundry : RoomApp
@@ -16,12 +17,15 @@ public class Laundry : RoomApp
     private readonly Func<IEntityProperties, bool> _washingMachinePowerSensor = e => e.EntityId == "switch.washing_machine";
     private readonly Func<IEntityProperties, bool> _washingMachineDoor = e => e.EntityId == "binary_sensor.dishwasher_door_contact";
 
+    private ISchedulerResult? _washingDoneTimer;
+
     public override Task InitializeAsync()
     {
         Entities(_washingMachinePowerSensor)
             .WhenStateChange((to, from) =>
             {
-                var resetStates = new List<WashingMachineState> { WashingMachineState.Idle, WashingMachineState.Clean, WashingMachineState.Finishing };
+                var resetStates = new List<WashingMachineState>
+                    {WashingMachineState.Idle, WashingMachineState.Clean, WashingMachineState.Finishing};
 
                 return GetWashingMachineWattage(to!) > 10D &&
                        resetStates.Contains(GetWashingMachineState());
@@ -34,6 +38,7 @@ public class Laundry : RoomApp
             .WhenStateChange((to, from) =>
                 GetWashingMachineWattage(to!) < 6D &&
                 GetWashingMachineState() == WashingMachineState.Running)
+            .AndNotChangeFor(TimeSpan.FromMinutes(1))
             .Call(async (_, __, ___) =>
                 await InputSelects(_washingMachineStatus).SetOption(WashingMachineState.Finishing).ExecuteAsync())
             .Execute();
@@ -41,7 +46,7 @@ public class Laundry : RoomApp
         Entities(_washingMachineStatus)
             .WhenStateChange((to, from) =>
                 GetWashingMachineState() == WashingMachineState.Finishing)
-            .AndNotChangeFor(new TimeSpan(0,2,0))
+            .AndNotChangeFor(new TimeSpan(0, 1, 0))
             .Call(async (_, __, ___) =>
                 await InputSelects(_washingMachineStatus).SetOption(WashingMachineState.Clean).ExecuteAsync())
             .Execute();
@@ -52,7 +57,10 @@ public class Laundry : RoomApp
                 to!.State == "on" &&
                 GetWashingMachineState() == WashingMachineState.Clean)
             .Call(async (_, __, ___) =>
-                await InputSelects(_washingMachineStatus).SetOption(WashingMachineState.Idle).ExecuteAsync())
+            {
+                CancelWashingDoneTimer();
+                await InputSelects(_washingMachineStatus).SetOption(WashingMachineState.Idle).ExecuteAsync();
+            })
             .Execute();
 
         Entities(_washingMachineStatus)
@@ -60,15 +68,47 @@ public class Laundry : RoomApp
                 from!.State == WashingMachineState.Running.ToString("F") &&
                 to!.State == WashingMachineState.Clean.ToString("F"))
             .Call(async (_, __, ___) =>
-                await this.Notify(
-                    "Laundry",
-                    "The washing machine has finished",
-                    Notifier.NotificationCriteria.Always,
-                    Notifier.NotificationCriteria.NotSleeping,
-                    Notifier.TextNotificationDevice.All))
+            {
+                _washingDoneTimer = Scheduler.RunEvery(TimeSpan.FromMinutes(30), async () =>
+                {
+                    if (GetWashingMachineState() == WashingMachineState.Clean)
+                    {
+                        await this.Notify(
+                            "Laundry",
+                            "The washing machine has finished",
+                            Notifier.NotificationCriteria.Always,
+                            Notifier.NotificationCriteria.Always,
+                            new[]
+                            {
+                                new Notifier.NotificationAction("silence_washingdone", "Silence")
+
+                            },
+                            Notifier.TextNotificationDevice.All);
+                    }
+                });
+
+                await Task.CompletedTask;
+            })
+            .Execute();
+
+        Events(e => e.EventId == "mobile_app_notification_action" && e.Data!.action == "silence_washingdone")
+            .Call(async (_, __) =>
+            {
+                CancelWashingDoneTimer();
+                await Task.CompletedTask;
+            })
             .Execute();
 
         return base.InitializeAsync();
+    }
+
+    private void CancelWashingDoneTimer()
+    {
+        if (_washingDoneTimer != null)
+        {
+            _washingDoneTimer.CancelSource.Cancel();
+            _washingDoneTimer = null;
+        }
     }
 
     private static double GetWashingMachineWattage(EntityState to)
