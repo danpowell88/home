@@ -114,25 +114,31 @@ public static class Notifier
 
     private static async Task SendTTSNotifications(NetDaemonApp app, string message)
     {
-        // send TTS as a text message right now until they are stable
-        //await SendTextNotifications(app, "TTS TEST", message, NotificationCriteria.Always, new[] {TextNotificationDevice.Daniel});
+        var ttsEnabled = app.GetState("input_boolean.tts_enabled")!.State;
 
-        await app.CallService("media_player", "turn_on", new
+        if (ttsEnabled == true)
         {
-            entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home)
-        }, true);
+            await app.CallService("media_player", "turn_on", new
+            {
+                entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home)
+            }, true);
 
-        await app.CallService("media_player", "volume_set", new
-        {
-            entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home),
-            volume_level = 1
-        }, true);
+            await app.CallService("media_player", "volume_set", new
+            {
+                entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home),
+                volume_level = 1
+            }, true);
 
-        await app.CallService("tts", "amazon_polly_say", new
+            await app.CallService("tts", "amazon_polly_say", new
+            {
+                entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home),
+                message = message
+            });
+        }
+        else
         {
-            entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home),
-            message = message
-        });
+            await SendTextNotifications(app, "TTS TEST", message, NotificationCriteria.Always, new[] {TextNotificationDevice.Daniel});
+        }
     }
 
     private static async Task SendTextNotifications(NetDaemonApp app, string category, string message,

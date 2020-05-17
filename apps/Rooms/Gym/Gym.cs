@@ -27,8 +27,8 @@ public class Gym : RoomApp
 
         Entity(Climate!)
             .WhenStateChange((from, to) =>
-                from!.State < FanTriggerTemp &&
-                to!.State >= FanTriggerTemp &&
+                (decimal?)from!.State! < FanTriggerTemp &&
+                (decimal?)to!.State! >= FanTriggerTemp &&
                 GetState(Training!)!.State == "on")
             .Call(BikeTrainingAction)
             .Execute();

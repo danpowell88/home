@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
@@ -13,12 +14,35 @@ public class MasterBedroom : RoomApp
             .WhenStateChange(from: "on", to: "off")
             .Call((_, __, ___) => StartTimer());
 
+
+
         return base.InitializeAsync();
     }
 
     protected override async Task TurnEveryThingOff()
     {
         await this.TurnEverythingOff(excludeEntities: "fan.masterbedroom_fan");
+    }
+
+    protected override bool SecondaryLightingEnabled => (DateTime.Now.Hour >= 18 && DateTime.Now.Hour <= 24) ||
+                                                        (DateTime.Now.Hour >= 0 && DateTime.Now.Hour <= 5) ||
+                                                        GetState("input_boolean.party_mode")!.State == "on";
+
+    protected override Dictionary<string, object>? SecondaryLightingAttributes
+    {
+        get
+        {
+            var rand = new Random();
+
+            var colours = new List<int> {rand.Next(0, 255), rand.Next(0, 255), rand.Next(0, 255)};
+
+            return new Dictionary<string, object>
+            {
+                {
+                    "rgb_color",  colours
+                }
+            };
+        }
     }
 
     protected override bool IndoorRoom => true;
@@ -36,6 +60,4 @@ public class MasterBedroom : RoomApp
                    DateTime.Now - bed.LastChanged > TimeSpan.FromMinutes(10);
         }
     }
-
-    protected override bool SecondaryLightingEnabled => false;
 }

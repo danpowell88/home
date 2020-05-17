@@ -16,6 +16,8 @@ public class Kitchen : RoomApp
     private readonly Func<IEntityProperties, bool> _dishwasherPowerSensor = e => e.EntityId == "switch.dishwasher";
     private readonly Func<IEntityProperties, bool> _dishwasherDoor = e => e.EntityId == "binary_sensor.dishwasher_door_contact";
 
+    protected override bool SecondaryLightingEnabled => DateTime.Now.Hour >= 18 && DateTime.Now.Hour <= 22;
+
     public override Task InitializeAsync()
     {
         Entities(_dishwasherPowerSensor)

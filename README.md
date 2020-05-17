@@ -7,9 +7,10 @@
 * ~~Dont trigger lights to turn on when presence ended, just start timer~~
 * ~~Ensure light triggers all obey "motion enabled" and rename to be more generic~~
 * ~~Security notifications when doors/windows/covers opened and sleeping or not home~~
-* Implement concept of supplemental lighting for feature lights
+* ~~Implement concept of supplemental lighting for feature lights~~
 * Ignore lights on based on lux
 * Set google home volume based on time of day / bed presence
+* Bin day notification
 
 ### Presence
 * Turn off ~~lights~~ and devices when left home
@@ -41,6 +42,8 @@
 * Add double switch for fan
 * Bed accent lighting
 * ~~Turn on / of lights depending on if bed state is off and has been off for > 10 minutes~~
+* Master off switches action depends on number of people in bed and people home
+* Cycle secondary light colours
 
 #### Ensuite Shower
 * Turn on fan when humidity is high after shower

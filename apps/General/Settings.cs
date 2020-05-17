@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
 
 public class Settings : NetDaemonApp
@@ -20,6 +21,15 @@ public class Settings : NetDaemonApp
             .WhenStateChange(from: "not_home", to: "home")
             .UseEntity("input_boolean.indoor_motion_enabled").TurnOn()
             .Execute();
+
+        Entity("input_boolean.party_mode")
+            .WhenStateChange(from: "off", to: "on")
+            .AndNotChangeFor(TimeSpan.FromHours(6))
+            .UseEntity("input_boolean.party_mode")
+            .TurnOff()
+            .Execute();
+
+        Scheduler.RunDaily("01:00:00", async () => await Entity("input_boolean.party_mode").TurnOff().ExecuteAsync());
 
         return base.InitializeAsync();
     }
