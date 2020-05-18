@@ -27,6 +27,8 @@
 * New device added to zigbee (need to add mqtt connection to ND - ON HOLD) 
 * Traffic to work notification
 * Weather notifications
+* Greeting notification with events since left
+* Janet inspired conversation -https://github.com/Lentron/Janet---Home-Assistant/blob/master/packages/janet.yaml
 
 ### Room Specific
 
