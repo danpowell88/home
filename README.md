@@ -47,6 +47,8 @@
 * Master off switches action depends on number of people in bed and people home
 * Cycle secondary light colours
 * Turn off secondary lights when everyone is in bed
+** When someone gets in bed turn off
+** When bed count changes but someone still in bed turn on
 
 #### Ensuite Shower
 * Turn on fan when humidity is high after shower

@@ -1,16 +1,21 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
 
 public static class EntityActions
 {
-    public static async Task TurnEverythingOff(this NetDaemonApp app, params string[] excludeEntities)
+    public static async Task TurnEverythingOff(this NetDaemonApp app, string? roomName= null, params string[] excludeEntities)
     {
-        await app.Entities(e =>
-                (e.EntityId.StartsWith("light.") ||
-                 e.EntityId.StartsWith("fan.") ||
-                 e.EntityId.StartsWith("climate.")) &&
-                !excludeEntities.ToList().Contains(e.EntityId))
+        bool Area(IEntityProperties e) => roomName == null ? true : (e.Attribute!.area != null && e.Attribute!.area.Contains(roomName));
+
+        bool Entities(IEntityProperties e) =>
+            (e.EntityId.StartsWith("light.") ||
+             e.EntityId.StartsWith("fan.") ||
+             e.EntityId.StartsWith("climate.")) &&
+            !excludeEntities.ToList().Contains(e.EntityId);
+
+        await app.Entities(e => Area(e) && Entities(e))
             .TurnOff().ExecuteAsync();
 
         // TODO turn off switches not marked as always on

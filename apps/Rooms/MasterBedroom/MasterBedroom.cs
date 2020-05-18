@@ -14,18 +14,25 @@ public class MasterBedroom : RoomApp
             .WhenStateChange(from: "on", to: "off")
             .Call((_, __, ___) => StartTimer());
 
-
-
         return base.InitializeAsync();
     }
 
     protected override async Task TurnEveryThingOff()
     {
-        await this.TurnEverythingOff(excludeEntities: "fan.masterbedroom_fan");
+        if (this.IsEveryoneInBed())
+        {
+            await this.TurnEverythingOff(excludeEntities: "fan.masterbedroom_fan");
+        }
+        else
+        {
+            await this.TurnEverythingOff(RoomPrefix, excludeEntities: "fan.masterbedroom_fan");
+        }
     }
 
-    protected override bool SecondaryLightingEnabled => (DateTime.Now.Hour >= 18 && DateTime.Now.Hour <= 24) ||
-                                                        (DateTime.Now.Hour >= 0 && DateTime.Now.Hour <= 5) ||
+    protected override bool SecondaryLightingEnabled => (DateTime.Now.Hour >= 18 
+                                                         && DateTime.Now.Hour <= 21) ||
+                                                         //&& DateTime.Now.Hour <= 24) ||
+                                                       // (DateTime.Now.Hour >= 0 && DateTime.Now.Hour <= 5) ||
                                                         GetState("input_boolean.party_mode")!.State == "on";
 
     protected override Dictionary<string, object>? SecondaryLightingAttributes
