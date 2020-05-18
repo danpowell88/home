@@ -44,6 +44,7 @@
 * ~~Turn on / of lights depending on if bed state is off and has been off for > 10 minutes~~
 * Master off switches action depends on number of people in bed and people home
 * Cycle secondary light colours
+* Turn off secondary lights when everyone is in bed
 
 #### Ensuite Shower
 * Turn on fan when humidity is high after shower
