@@ -1,13 +1,17 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using EnumsNET;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
 
 public static class EntityActions
 {
     public static async Task TurnEverythingOff(this NetDaemonApp app, string? roomName= null, params string[] excludeEntities)
     {
-        bool Area(IEntityProperties e) => roomName == null ? true : (e.Attribute!.area != null && e.Attribute!.area.Contains(roomName));
+        bool Area(IEntityProperties e) => 
+            roomName == null ? 
+                true :
+                (e.Attribute!.area != null && ((string)e.Attribute!.area).Split(",").Contains(roomName.ToLower()));
 
         bool Entities(IEntityProperties e) =>
             (e.EntityId.StartsWith("light.") ||
