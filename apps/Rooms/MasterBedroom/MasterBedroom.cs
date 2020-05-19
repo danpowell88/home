@@ -26,6 +26,10 @@ public class MasterBedroom : RoomApp
         else
         {
             await this.TurnEverythingOff(RoomPrefix, excludeEntities: "fan.masterbedroom_fan");
+            await this.TurnEverythingOff(nameof(MasterBedroomRobe));
+            await this.TurnEverythingOff(nameof(Ensuite));
+            await this.TurnEverythingOff(nameof(EnsuiteShower));
+            await this.TurnEverythingOff(nameof(Entry));
         }
     }
 
