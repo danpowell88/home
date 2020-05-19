@@ -29,10 +29,7 @@ public class MasterBedroom : RoomApp
         }
     }
 
-    protected override bool SecondaryLightingEnabled => (DateTime.Now.Hour >= 18 
-                                                         && DateTime.Now.Hour <= 21) ||
-                                                         //&& DateTime.Now.Hour <= 24) ||
-                                                       // (DateTime.Now.Hour >= 0 && DateTime.Now.Hour <= 5) ||
+    protected override bool SecondaryLightingEnabled => GetState("person.marissa")!.State == "not_home" ||
                                                         GetState("input_boolean.party_mode")!.State == "on";
 
     protected override Dictionary<string, object>? SecondaryLightingAttributes

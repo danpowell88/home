@@ -64,21 +64,13 @@ public class Laundry : RoomApp
             .Execute();
 
         Entities(_washingMachineStatus)
-            .WhenStateChange((to, from) =>
-            {
-                Log(LogLevel.Information, "from: {from} running :enum {enum}",from.State, WashingMachineState.Running.ToString("F"));
-                Log(LogLevel.Information, "to: {from} clean: enum {enum}",to.State, WashingMachineState.Clean.ToString("F"));
-
-                return @from!.State == WashingMachineState.Running.ToString("F") &&
-                       to!.State == WashingMachineState.Clean.ToString("F");
-            })
+            .WhenStateChange((to, from) => 
+                from!.State == WashingMachineState.Finishing.ToString("F") &&
+                to!.State == WashingMachineState.Clean.ToString("F"))
             .Call(async (_, __, ___) =>
             {
-                Log(LogLevel.Information, "washing machine trigger notification");
                 _washingDoneTimer = Scheduler.RunEvery(TimeSpan.FromMinutes(30), async () =>
                 {
-                    Log(LogLevel.Information, " inside washing timer");
-
                     if (GetWashingMachineState() == WashingMachineState.Clean)
                     {
                         Log(LogLevel.Information, "about to notify washing machine");

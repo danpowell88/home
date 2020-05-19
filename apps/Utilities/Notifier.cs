@@ -116,7 +116,7 @@ public static class Notifier
     {
         var ttsEnabled = app.GetState("input_boolean.tts_enabled")!.State;
 
-        if (ttsEnabled == true)
+        if (ttsEnabled == "on")
         {
             await app.CallService("media_player", "turn_on", new
             {
