@@ -16,6 +16,8 @@
 * Turn off ~~lights~~ and devices when left home
 * Implement concept of "always on" switches so they dont get switched off by automations
 * Disable motion when no one home
+* Turn off lights when someone left and other person is in bed
+* Dog BT trackers
 
 ### Cooling / Heating
 * Enable/Disable fan / air conditioning when room has presence for x and temperature is x
@@ -29,6 +31,10 @@
 * Weather notifications
 * Greeting notification with events since left
 * Janet inspired conversation -https://github.com/Lentron/Janet---Home-Assistant/blob/master/packages/janet.yaml
+
+### Vacuum
+* Stop vacuum when tv show started
+* Stop vacuum when someone returns home
 
 ### Room Specific
 
@@ -49,6 +55,7 @@
 * Turn off secondary lights when everyone is in bed
 ** When someone gets in bed turn off
 ** When bed count changes but someone still in bed turn on
+* Turn down speaker volume when someone gone to bed
 
 #### Ensuite Shower
 * Turn on fan when humidity is high after shower
@@ -71,9 +78,14 @@
 * ~~Figure out why lights turn off when chair has presence / power detected~~
 * ~~Light off when movie playing~~ - TO BE TESTED
 * ~~Lights back on when paused / finished~~ - TO BE TESTED
+* TV / Amp power monitoring
+* IR to turn on tv and amp
+* Google voice to turn on tv etc
 
 #### Study
 * Implement IoTLink for pc idle status override https://gitlab.com/iotlink/iotlink/-/wikis/Addons/Windows-Monitor
+* Verify monitors turn off when pc off
 
 #### Garage
 * ~~Door left open notification~~
+* Disable motion when everyone in bed
