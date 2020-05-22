@@ -26,8 +26,10 @@ public static class Notifier
 
     public enum AudioNotificationDevice
     {
-        [Display(Name="media_player.home_2")]
-        Home
+        [Display(Name="media_player.home")]
+        Home,
+        [Display(Name = "media_player.kitchen_assistant")]
+        Kitchen
     }
 
     public static async Task Notify(this NetDaemonApp app, Uri audio, params AudioNotificationDevice[] devices)
@@ -126,7 +128,7 @@ public static class Notifier
             await app.CallService("media_player", "volume_set", new
             {
                 entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home),
-                volume_level = 1
+                volume_level = GetVolume(app)
             }, true);
 
             await app.CallService("tts", "amazon_polly_say", new
@@ -174,6 +176,31 @@ public static class Notifier
                 }
             });
         }
+    }
+
+    public static async Task SetTTSVolume(this NetDaemonApp app)
+    {
+        var deviceName = GetAudioNotificationDeviceName(AudioNotificationDevice.Home);
+
+        if (app.GetState(deviceName)!.State != "playing")
+        {
+            await app.SetVolume(GetVolume(app), deviceName);
+        }
+    }
+
+    public static double GetVolume(NetDaemonApp app)
+    {
+        if (app.IsAnyoneSleeping())
+            return 0.3;
+
+        if (DateTime.Now.Hour > 0 && DateTime.Now.Hour <= 8)
+            return 0.3;
+        if (DateTime.Now.Hour > 8 && DateTime.Now.Hour <= 20)
+            return 1;
+        if (DateTime.Now.Hour > 20 && DateTime.Now.Hour <= 23)
+            return 0.3;
+
+        return 0.5;
     }
 
     public class NotificationAction

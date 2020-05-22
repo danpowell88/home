@@ -18,7 +18,30 @@ public class Kitchen : RoomApp
 
     protected override bool SecondaryLightingEnabled => DateTime.Now.Hour >= 18 && DateTime.Now.Hour <= 22;
 
+
+
     public override Task InitializeAsync()
+    {
+        SetupDishwasher();
+
+        Entity("binary_sensor.fridge_door_contact")
+            .WhenStateChange((to, from) => from!.State == "off" && to.State == "on" &&
+                                           (GetState("person.daniel")!.State != "home" ||
+                                            GetState("binary_sensor.media_chair_right_occupancy")!.State == "on") &&
+                                           Storage.LastFridgeNotification == null ||
+                                           DateTime.Now - (DateTime) Storage.LastFridgeNotification >=
+                                           TimeSpan.FromHours(24))
+            .Call(async (_, __, ___) =>
+            {
+                await this.Notify(new Uri("http://192.168.1.2:8123/local/big_pig_snort.mp3"), Notifier.AudioNotificationDevice.Home);
+                Storage.LastFridgeNotification = DateTime.Now;
+            })
+            .Execute();
+
+        return base.InitializeAsync();
+    }
+
+    private void SetupDishwasher()
     {
         Entities(_dishwasherPowerSensor)
             .WhenStateChange((to, from) =>
@@ -33,40 +56,38 @@ public class Kitchen : RoomApp
             .Execute();
 
         Entities(_dishwasherPowerSensor)
-            .WhenStateChange((to, from) => 
-                GetDishwasherWattage(to!) < 1D && 
+            .WhenStateChange((to, from) =>
+                GetDishwasherWattage(to!) < 1D &&
                 GetDishwasherState() == DishwasherState.Running)
-            .AndNotChangeFor(new TimeSpan(0,1,0))
+            .AndNotChangeFor(new TimeSpan(0, 1, 0))
             .Call(async (_, __, ___) =>
                 await InputSelects(_dishwasherStatus).SetOption(DishwasherState.Clean).ExecuteAsync())
             .Execute();
 
         Entities(_dishwasherDoor)
             .WhenStateChange((to, from) =>
-                from!.State == "off" && 
-                to!.State == "on" && 
+                @from!.State == "off" &&
+                to!.State == "on" &&
                 (
-                    GetDishwasherWattage(to!) < 1D || 
+                    GetDishwasherWattage(to!) < 1D ||
                     GetDishwasherState() == DishwasherState.Clean)
-                )
+            )
             .Call(async (_, __, ___) =>
                 await InputSelects(_dishwasherStatus).SetOption(DishwasherState.Dirty).ExecuteAsync())
             .Execute();
 
         Entities(_dishwasherStatus)
-            .WhenStateChange((to, from) => 
-                from!.State == DishwasherState.Running.ToString("F") && 
+            .WhenStateChange((to, from) =>
+                @from!.State == DishwasherState.Running.ToString("F") &&
                 to!.State == DishwasherState.Clean.ToString("F"))
             .Call(async (_, __, ___) =>
                 await this.Notify(
-                    "Kitchen", 
+                    "Kitchen",
                     "The dishwasher has finished",
                     Notifier.NotificationCriteria.NotSleeping,
                     Notifier.NotificationCriteria.NotSleeping,
                     Notifier.TextNotificationDevice.All))
             .Execute();
-
-        return base.InitializeAsync();
     }
 
     private static double GetDishwasherWattage(EntityState to)

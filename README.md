@@ -31,6 +31,7 @@
 * Weather notifications
 * Greeting notification with events since left
 * Janet inspired conversation -https://github.com/Lentron/Janet---Home-Assistant/blob/master/packages/janet.yaml
+* Calendar events upcoming, and time to leave
 
 ### Vacuum
 * Stop vacuum when tv show started

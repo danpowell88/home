@@ -25,4 +25,13 @@ public static class EntityActions
         // dont turn off bedroom climate if occupied
         // alert if any windows doors open
     }
+
+    public static async Task SetVolume(this NetDaemonApp app, double volume, string entityId)
+    {
+        await app.CallService("media_player", "volume_set", new
+        {
+            entity_id = entityId,
+            volume_level = volume
+        }, true);
+    }
 }
