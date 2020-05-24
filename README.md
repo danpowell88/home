@@ -9,13 +9,13 @@
 * ~~Security notifications when doors/windows/covers opened and sleeping or not home~~
 * ~~Implement concept of supplemental lighting for feature lights~~
 * Ignore lights on based on lux
-* Set google home volume based on time of day / bed presence
+* ~~Set google home volume based on time of day / bed presence~~
 * Bin day notification
 
 ### Presence
 * Turn off ~~lights~~ and devices when left home
 * Implement concept of "always on" switches so they dont get switched off by automations
-* Disable motion when no one home
+* ~~Disable motion when no one home~~
 * Turn off lights when someone left and other person is in bed
 * Dog BT trackers
 
@@ -23,10 +23,9 @@
 * Enable/Disable fan / air conditioning when room has presence for x and temperature is x
 
 ### Notifications
-* TTS and app notification depending on presence / occupancy
+* ~~TTS and app notification depending on presence / occupancy~~
 * ~~Low batteries~~ -TO BE TESTED
 * ~~Device dropped from zigbee/wifi for x period~~ - TO BE TESTED
-* New device added to zigbee (need to add mqtt connection to ND - ON HOLD) 
 * Traffic to work notification
 * Weather notifications
 * Greeting notification with events since left
@@ -35,7 +34,7 @@
 
 ### Vacuum
 * Stop vacuum when tv show started
-* Stop vacuum when someone returns home
+* ~~Stop vacuum when someone returns home~~
 
 ### Room Specific
 
@@ -49,14 +48,14 @@
 * General motion based on wake/sleep
 * ~~Master switches to turn off devices/lights~~
 * Add double switch for fan
-* Bed accent lighting
+* ~~Bed accent lighting~~
 * ~~Turn on / of lights depending on if bed state is off and has been off for > 10 minutes~~
-* Master off switches action depends on number of people in bed and people home
+* ~~Master off switches action depends on number of people in bed and people home~~
 * Cycle secondary light colours
 * Turn off secondary lights when everyone is in bed
 ** When someone gets in bed turn off
 ** When bed count changes but someone still in bed turn on
-* Turn down speaker volume when someone gone to bed
+* ~~Turn down speaker volume when someone gone to bed~~
 
 #### Ensuite Shower
 * Turn on fan when humidity is high after shower

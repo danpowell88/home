@@ -45,6 +45,6 @@ public class FrontEntry : RoomApp
             Notifier.NotificationCriteria.None,
             Notifier.TextNotificationDevice.All);
 
-        await this.Notify(new Uri("http://192.168.1.2:8123/local/doorbell.mp3"), Notifier.AudioNotificationDevice.Home);
+        await this.Notify(new Uri("http://192.168.1.2:8123/local/doorbell.mp3"),1, Notifier.AudioNotificationDevice.Home);
     }
 }

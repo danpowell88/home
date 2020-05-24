@@ -20,6 +20,8 @@ public class Garage : RoomApp
         .Call(
             async (_, __, ___) =>
             {
+                CancelOpenTimer();
+
                _garageOpenTimer = Scheduler.RunEvery(TimeSpan.FromMinutes(20), async () =>
                {
                     if (GetState("cover.garage_door")!.State == "open")

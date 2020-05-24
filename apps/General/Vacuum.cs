@@ -88,6 +88,20 @@ public class Vacuum : NetDaemonApp
             })
             .Execute();
 
+        Entity("group.family")
+            .WhenStateChange(from: "not_home", to: "home")
+            .Call(async (_, __, ___) =>
+            {
+                if (GetState("vacuum.xiaomi_vacuum_cleaner")!.State != "docked")
+                {
+                    await CallService("vacuum", "return_to_base", new
+                    {
+                        entity_id = "vacuum.xiaomi_vacuum_cleaner"
+                    });
+                }
+            })
+            .Execute();
+
         Entity("vacuum.xiaomi_vacuum_cleaner")
             .WhenStateChange(from: "cleaning", to: "returning")
             .Call(async (entityId, to, from) =>

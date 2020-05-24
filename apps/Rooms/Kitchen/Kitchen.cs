@@ -18,8 +18,6 @@ public class Kitchen : RoomApp
 
     protected override bool SecondaryLightingEnabled => DateTime.Now.Hour >= 18 && DateTime.Now.Hour <= 22;
 
-
-
     public override Task InitializeAsync()
     {
         SetupDishwasher();
@@ -30,12 +28,12 @@ public class Kitchen : RoomApp
             {
                 if ((GetState("person.daniel")!.State != "home" ||
                      GetState("binary_sensor.media_chair_right_occupancy")!.State == "on") &&
+                    DateTime.Now.Hour > 15 && DateTime.Now.Hour < 20 &&
                     ((DateTime?)Storage.LastFridgeNotification == null ||
                     DateTime.Now - (DateTime) Storage.LastFridgeNotification >=
                     TimeSpan.FromHours(24)))
                 {
-                    await this.Notify(new Uri("http://192.168.1.2:8123/local/big_pig_snort.mp3"),
-                        Notifier.AudioNotificationDevice.Home);
+                    await this.Notify(new Uri("http://192.168.1.2:8123/local/big_pig_snort.mp3"), 0.4M,Notifier.AudioNotificationDevice.Kitchen);
                     Storage.LastFridgeNotification = DateTime.Now;
                 }
             })

@@ -32,7 +32,7 @@ public static class Notifier
         Kitchen
     }
 
-    public static async Task Notify(this NetDaemonApp app, Uri audio, params AudioNotificationDevice[] devices)
+    public static async Task Notify(this NetDaemonApp app, Uri audio, decimal? volume = null,params AudioNotificationDevice[] devices)
     {
         foreach (var device in devices)
         {
@@ -44,7 +44,7 @@ public static class Notifier
             await app.CallService("media_player", "volume_set", new
             {
                 entity_id = GetAudioNotificationDeviceName(device),
-                volume_level = 1
+                volume_level = volume ?? GetVolume(app)
             }, true);
 
             await app.CallService("media_player", "play_media", new
