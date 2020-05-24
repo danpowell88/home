@@ -8,10 +8,8 @@ public class Audio : NetDaemonApp
 {
     public override async Task InitializeAsync()
     {
-        Scheduler.RunEvery(TimeSpan.FromMinutes(15), async () => await this.SetTTSVolume());
-
-        Entity("sensor.bed_occupancy_count").WhenStateChange().Call(async (_, __, ___) => await this.SetTTSVolume()).Execute();
-
+        Entity("group.family").WhenStateChange(from: "not_home", to: "home").Call(async (_, __, ___) => await this.SetTTSVolume()).Execute();
+        Entity("binary_sensor.bed_occupancy").WhenStateChange().Call(async (_, __, ___) => await this.SetTTSVolume()).Execute();
         await base.InitializeAsync();
     }
 }
