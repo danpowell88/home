@@ -19,6 +19,13 @@ public class Settings : NetDaemonApp
             .UseEntity("input_boolean.indoor_motion_enabled").TurnOff()
             .Execute();
 
+        Entity("sensor.bed_occupancy_count")
+            .WhenStateChange()
+            .Call(async (_, __, ___) =>
+            {
+                await Entity("input_boolean.indoor_motion_enabled").Toggle(this.IsEveryoneInBed());
+            }).Execute();
+
         Entity("group.family")
             .WhenStateChange(from: "not_home", to: "home")
             .UseEntity("input_boolean.indoor_motion_enabled").TurnOn()

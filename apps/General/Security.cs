@@ -26,7 +26,7 @@ public class Security : NetDaemonApp
                         "Security",
                         $"The {to!.Attribute!.friendly_name.ToLower()} has been opened",
                         Notifier.NotificationCriteria.Always,
-                        Notifier.NotificationCriteria.None,
+                        Notifier.NotificationCriteria.Home,
                         Notifier.TextNotificationDevice.All);
                 }
             })

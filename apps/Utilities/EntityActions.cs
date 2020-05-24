@@ -37,4 +37,14 @@ public static class EntityActions
             }, true);
         }
     }
+
+    public static async Task Toggle(this IEntity entity, bool on)
+    {
+        if (on)
+            await entity.TurnOn().ExecuteAsync();
+        else
+        {
+            await entity.TurnOff().ExecuteAsync();
+        }
+    }
 }

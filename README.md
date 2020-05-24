@@ -19,6 +19,9 @@
 * Turn off lights when someone left and other person is in bed
 * Dog BT trackers
 
+### Security
+* open/close notification when sleeping
+
 ### Cooling / Heating
 * Enable/Disable fan / air conditioning when room has presence for x and temperature is x
 
@@ -68,11 +71,11 @@
 * ~~Turn off fan when on for x time~~ - TO BE TESTED
 
 #### Pantry
-* Fridge left open notification
+* ~~Fridge left open notification~~ -  TO BE TESTED
 
 #### Kitchen
 * ~~Migrate dishwasher automation~~
-* Trigger vacuum in kitchen after dishwasher on (?)
+* Trigger vacuum in kitchen after dishwasher on, if tv not on and no one in bed
 
 #### Media
 * ~~Figure out why lights turn off when chair has presence / power detected~~
@@ -88,4 +91,4 @@
 
 #### Garage
 * ~~Door left open notification~~
-* Disable motion when everyone in bed
+* ~~Disable motion when everyone in bed~~
