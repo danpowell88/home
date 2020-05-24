@@ -25,16 +25,19 @@ public class Kitchen : RoomApp
         SetupDishwasher();
 
         Entity("binary_sensor.fridge_door_contact")
-            .WhenStateChange((to, from) => from!.State == "off" && to.State == "on" &&
-                                           (GetState("person.daniel")!.State != "home" ||
-                                            GetState("binary_sensor.media_chair_right_occupancy")!.State == "on") &&
-                                           Storage.LastFridgeNotification == null ||
-                                           DateTime.Now - (DateTime) Storage.LastFridgeNotification >=
-                                           TimeSpan.FromHours(24))
+            .WhenStateChange((to, from) => from!.State == "off" && to.State == "on")
             .Call(async (_, __, ___) =>
             {
-                await this.Notify(new Uri("http://192.168.1.2:8123/local/big_pig_snort.mp3"), Notifier.AudioNotificationDevice.Home);
-                Storage.LastFridgeNotification = DateTime.Now;
+                if ((GetState("person.daniel")!.State != "home" ||
+                     GetState("binary_sensor.media_chair_right_occupancy")!.State == "on") &&
+                    ((DateTime?)Storage.LastFridgeNotification == null ||
+                    DateTime.Now - (DateTime) Storage.LastFridgeNotification >=
+                    TimeSpan.FromHours(24)))
+                {
+                    await this.Notify(new Uri("http://192.168.1.2:8123/local/big_pig_snort.mp3"),
+                        Notifier.AudioNotificationDevice.Home);
+                    Storage.LastFridgeNotification = DateTime.Now;
+                }
             })
             .Execute();
 

@@ -38,7 +38,7 @@ public class Laundry : RoomApp
             .WhenStateChange((to, from) =>
                 GetWashingMachineWattage(to!) < 6D &&
                 GetWashingMachineState() == WashingMachineState.Running)
-            .AndNotChangeFor(TimeSpan.FromMinutes(2))
+            .AndNotChangeFor(TimeSpan.FromSeconds(150))
             .Call(async (_, __, ___) =>
                 await InputSelects(_washingMachineStatus).SetOption(WashingMachineState.Finishing).ExecuteAsync())
             .Execute();
@@ -69,6 +69,8 @@ public class Laundry : RoomApp
                 to!.State == WashingMachineState.Clean.ToString("F"))
             .Call(async (_, __, ___) =>
             {
+                CancelWashingDoneTimer();
+
                 _washingDoneTimer = Scheduler.RunEvery(TimeSpan.FromMinutes(30), async () =>
                 {
                     if (GetWashingMachineState() == WashingMachineState.Clean)

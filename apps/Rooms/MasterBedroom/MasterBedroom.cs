@@ -19,7 +19,11 @@ public class MasterBedroom : RoomApp
 
     protected override async Task TurnEveryThingOff()
     {
-        if (this.IsEveryoneInBed())
+        if (!this.IsAnyoneInBed())
+        {
+            await this.TurnEverythingOff(excludeEntities:new string[0]);
+        }
+        else if (this.IsEveryoneInBed())
         {
             await this.TurnEverythingOff(excludeEntities: "fan.masterbedroom_fan");
         }

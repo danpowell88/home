@@ -65,7 +65,7 @@ public class Vacuum : NetDaemonApp
             .Execute();
 
         Entity("group.family")
-            .WhenStateChange(from: "not_home", to: "home")
+            .WhenStateChange(from: "home", to: "not_home")
             .AndNotChangeFor(TimeSpan.FromMinutes(60))
             .Call(async (_, __, ___) =>
             {
@@ -80,7 +80,8 @@ public class Vacuum : NetDaemonApp
                         {
                             new Notifier.NotificationAction("vacuum_house", "Yes"),
                             new Notifier.NotificationAction("vacuum_tiles", "Tiles"),
-                            new Notifier.NotificationAction("vacuum_no", "No")
+                            new Notifier.NotificationAction("vacuum_no", "No"),
+                            new Notifier.NotificationAction("vacuum_silence", "Silence")
                         },
                         Notifier.TextNotificationDevice.All);
                 }
@@ -107,6 +108,10 @@ public class Vacuum : NetDaemonApp
 
         Events(e => e.EventId == "mobile_app_notification_action" && e.Data!.action == "vacuum_tiles")
             .Call(async (_, __) => { await CleanRoom("tiles"); })
+            .Execute();
+
+        Events(e => e.EventId == "mobile_app_notification_action" && e.Data!.action == "vacuum_silence")
+            .Call(async (_, __) => { await Entity("input_boolean.vacuumed_today").TurnOn().ExecuteAsync(); })
             .Execute();
 
         Scheduler.RunDaily("00:00:00",

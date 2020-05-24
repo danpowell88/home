@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using JoySoftware.HomeAssistant.NetDaemon.Common;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 public class Settings : NetDaemonApp
 {
@@ -27,6 +29,21 @@ public class Settings : NetDaemonApp
             .AndNotChangeFor(TimeSpan.FromHours(6))
             .UseEntity("input_boolean.party_mode")
             .TurnOff()
+            .Execute();
+
+        Entities(e => e.EntityId.StartsWith("light."))
+            .WhenStateChange()
+            .Call(async (_, __, ___) =>
+            {
+                if (State.Any(e => e.EntityId.StartsWith("light.") && e.State == "on"))
+                {
+                    await Entity("input_boolean.any_light_on").TurnOn().ExecuteAsync();
+                }
+                else
+                {
+                    await Entity("input_boolean.any_light_on").TurnOff().ExecuteAsync();
+                }
+            })
             .Execute();
 
         Scheduler.RunDaily("01:00:00", async () => await Entity("input_boolean.party_mode").TurnOff().ExecuteAsync());

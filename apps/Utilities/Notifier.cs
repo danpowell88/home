@@ -120,16 +120,15 @@ public static class Notifier
 
         if (ttsEnabled == "on")
         {
+            // TEMP FOR DEBUGGING
+            await SendTextNotifications(app, "TTS TEST", message, NotificationCriteria.Always, new[] { TextNotificationDevice.Daniel });
+
             await app.CallService("media_player", "turn_on", new
             {
                 entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home)
             }, true);
 
-            await app.CallService("media_player", "volume_set", new
-            {
-                entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home),
-                volume_level = GetVolume(app)
-            }, true);
+            await SetTTSVolume(app);
 
             await app.CallService("tts", "amazon_polly_say", new
             {
@@ -167,7 +166,7 @@ public static class Notifier
             // todo: support iphone and lookup notification type
             await app.CallService("notify", device.AsString(EnumFormat.DisplayName, EnumFormat.Name)!, new
             {
-                message = message,
+                message = $"{DateTime.Now:t}:{message}",
                 title = category,
                 data = new
                 {
@@ -188,19 +187,19 @@ public static class Notifier
         }
     }
 
-    public static double GetVolume(NetDaemonApp app)
+    private static decimal GetVolume(NetDaemonApp app)
     {
         if (app.IsAnyoneSleeping())
-            return 0.3;
+            return 0.3M;
 
         if (DateTime.Now.Hour > 0 && DateTime.Now.Hour <= 8)
-            return 0.3;
+            return 0.3M;
         if (DateTime.Now.Hour > 8 && DateTime.Now.Hour <= 20)
-            return 1;
+            return 1M;
         if (DateTime.Now.Hour > 20 && DateTime.Now.Hour <= 23)
-            return 0.3;
+            return 0.3M;
 
-        return 0.5;
+        return 0.5M;
     }
 
     public class NotificationAction

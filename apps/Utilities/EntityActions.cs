@@ -26,12 +26,15 @@ public static class EntityActions
         // alert if any windows doors open
     }
 
-    public static async Task SetVolume(this NetDaemonApp app, double volume, string entityId)
+    public static async Task SetVolume(this NetDaemonApp app, decimal volume, string entityId)
     {
-        await app.CallService("media_player", "volume_set", new
+        if (((decimal?)app.GetState(entityId)!.Attribute!.volume_level).GetValueOrDefault(0) != volume)
         {
-            entity_id = entityId,
-            volume_level = volume
-        }, true);
+            await app.CallService("media_player", "volume_set", new
+            {
+                entity_id = entityId,
+                volume_level = volume
+            }, true);
+        }
     }
 }
