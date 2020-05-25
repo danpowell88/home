@@ -29,7 +29,7 @@ public class Pantry : RoomApp
                             "Pantry",
                             $"The fridge door has been left open",
                             Notifier.NotificationCriteria.Home,
-                            Notifier.NotificationCriteria.Home,
+                            Notifier.NotificationCriteria.None,
                             new[]
                             {
                                 new Notifier.NotificationAction ("silence_fridge", "Silence")
