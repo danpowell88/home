@@ -23,7 +23,7 @@ public class Pantry : RoomApp
 
                 _fridgeOpenTimer = Scheduler.RunEvery(TimeSpan.FromMinutes(3), async () =>
                 {
-                    if (GetState("binary_sensor.fridge_door_contact")!.State == "off")
+                    if (GetState("binary_sensor.fridge_door_contact")!.State == "on")
                     {
                         await this.Notify(
                             "Pantry",
@@ -38,6 +38,13 @@ public class Pantry : RoomApp
                     }
                 });
 
+                await Task.CompletedTask;
+            }).Execute();
+
+        Entity("binary_sensor.fridge_door_contact")
+            .WhenStateChange(from: "on", to: "off").Call(async (_, __, ___) =>
+            {
+                CancelOpenTimer();
                 await Task.CompletedTask;
             }).Execute();
 
