@@ -23,7 +23,14 @@ public class Settings : NetDaemonApp
             .WhenStateChange()
             .Call(async (_, __, ___) =>
             {
-                await Entity("input_boolean.indoor_motion_enabled").Toggle(this.IsEveryoneInBed());
+                if (this.IsEveryoneInBed())
+                {
+                    await Entity("input_boolean.indoor_motion_enabled").TurnOff().ExecuteAsync();
+                }
+                else if(GetState("group.family")!.State == "home")
+                {
+                    await Entity("input_boolean.indoor_motion_enabled").TurnOn().ExecuteAsync();
+                }
             }).Execute();
 
         Entity("group.family")
