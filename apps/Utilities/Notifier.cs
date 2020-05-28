@@ -170,6 +170,8 @@ public static class Notifier
                 title = category,
                 data = new
                 {
+                    ttl = 0,
+                    priority = "high",
                     actions = notificationActions?.Select(n => new {action = n.EventId, title = n.Title}),
                     image = imageUrl
                 }

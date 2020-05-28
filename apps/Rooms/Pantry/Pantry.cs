@@ -13,33 +13,33 @@ public class Pantry : RoomApp
 
     public override Task InitializeAsync()
     {
-        Entity("binary_sensor.fridge_door_contact")
-            .WhenStateChange(from: "off", to: "on")
-            .AndNotChangeFor(TimeSpan.FromMinutes(3))
-        .Call(
-            async (_, __, ___) =>
-            {
-                CancelOpenTimer();
+        //Entity("binary_sensor.fridge_door_contact")
+        //    .WhenStateChange(from: "off", to: "on")
+        //    .AndNotChangeFor(TimeSpan.FromMinutes(3))
+        //.Call(
+        //    async (_, __, ___) =>
+        //    {
+        //        CancelOpenTimer();
 
-                _fridgeOpenTimer = Scheduler.RunEvery(TimeSpan.FromMinutes(3), async () =>
-                {
-                    if (GetState("binary_sensor.fridge_door_contact")!.State == "on")
-                    {
-                        await this.Notify(
-                            "Pantry",
-                            $"The fridge door has been left open",
-                            Notifier.NotificationCriteria.Home,
-                            Notifier.NotificationCriteria.None,
-                            new[]
-                            {
-                                new Notifier.NotificationAction ("silence_fridge", "Silence")
-                            },
-                            Notifier.TextNotificationDevice.All);
-                    }
-                });
+        //        _fridgeOpenTimer = Scheduler.RunEvery(TimeSpan.FromMinutes(3), async () =>
+        //        {
+        //            if (GetState("binary_sensor.fridge_door_contact")!.State == "on")
+        //            {
+        //                await this.Notify(
+        //                    "Pantry",
+        //                    $"The fridge door has been left open",
+        //                    Notifier.NotificationCriteria.Home,
+        //                    Notifier.NotificationCriteria.None,
+        //                    new[]
+        //                    {
+        //                        new Notifier.NotificationAction ("silence_fridge", "Silence")
+        //                    },
+        //                    Notifier.TextNotificationDevice.All);
+        //            }
+        //        });
 
-                await Task.CompletedTask;
-            }).Execute();
+        //        await Task.CompletedTask;
+        //    }).Execute();
 
         Entity("binary_sensor.fridge_door_contact")
             .WhenStateChange(from: "on", to: "off").Call(async (_, __, ___) =>
