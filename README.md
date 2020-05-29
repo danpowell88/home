@@ -48,7 +48,7 @@
 * ~~Get bed occupancy working~~
 * Sleeping bayesian sensors
 * Wake / Sleep automations
-* General motion based on wake/sleep
+* ~~General motion based on wake/sleep~~
 * ~~Master switches to turn off devices/lights~~
 * Add double switch for fan
 * ~~Bed accent lighting~~
@@ -86,7 +86,7 @@
 * Google voice to turn on tv etc
 
 #### Study
-* Implement IoTLink for pc idle status override https://gitlab.com/iotlink/iotlink/-/wikis/Addons/Windows-Monitor
+* ~~Implement IoTLink for pc idle status override https://gitlab.com/iotlink/iotlink/-/wikis/Addons/Windows-Monitor~~
 * Verify monitors turn off when pc off
 
 #### Garage
