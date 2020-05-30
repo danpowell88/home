@@ -30,15 +30,17 @@ public class Laundry : RoomApp
                 return GetWashingMachineWattage(to!) > 10D &&
                        resetStates.Contains(GetWashingMachineState());
             })
-            .Call(async (_, __, ___) =>
-                await InputSelects(_washingMachineStatus).SetOption(WashingMachineState.Running).ExecuteAsync())
+            .Call(async (_, __, ___) => {
+                CancelWashingDoneTimer();
+                await InputSelects(_washingMachineStatus).SetOption(WashingMachineState.Running).ExecuteAsync();
+            })
             .Execute();
 
         Entities(_washingMachinePowerSensor)
             .WhenStateChange((to, from) =>
                 GetWashingMachineWattage(to!) < 6D &&
                 GetWashingMachineState() == WashingMachineState.Running)
-            .AndNotChangeFor(TimeSpan.FromSeconds(150))
+            .AndNotChangeFor(TimeSpan.FromSeconds(170))
             .Call(async (_, __, ___) =>
                 await InputSelects(_washingMachineStatus).SetOption(WashingMachineState.Finishing).ExecuteAsync())
             .Execute();
@@ -55,7 +57,7 @@ public class Laundry : RoomApp
             .WhenStateChange((to, from) =>
                 from!.State == "off" &&
                 to!.State == "on" &&
-                GetWashingMachineState() == WashingMachineState.Clean)
+                GetWashingMachineState() != WashingMachineState.R)
             .Call(async (_, __, ___) =>
             {
                 CancelWashingDoneTimer();

@@ -1,4 +1,2 @@
 study:
   class: Study
-  PcUsage: binary_sensor.study_pc_on
-  MonitorSwitch: switch.office_pc_monitors

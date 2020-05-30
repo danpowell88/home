@@ -6,8 +6,8 @@ using JoySoftware.HomeAssistant.NetDaemon.Common;
 [UsedImplicitly]
 public class Study : RoomApp
 {
-    public string? MonitorSwitch { get; set; }
-    public string? PcUsage { get; set; }
+    public string? MonitorSwitch => "switch.office_pc_monitors";
+    public string? PcUsage => "binary_sensor.studypc_on";
 
     public override Task InitializeAsync()
     {
@@ -19,7 +19,7 @@ public class Study : RoomApp
 
         Entity(PcUsage!)
             .WhenStateChange(from: "on", to: "off")
-            .AndNotChangeFor(TimeSpan.FromMinutes(2))
+            .AndNotChangeFor(TimeSpan.FromMinutes(1))
             .Call(PcNotInUseAction)
             .Execute();
 
