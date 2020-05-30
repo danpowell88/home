@@ -57,7 +57,7 @@ public class Laundry : RoomApp
             .WhenStateChange((to, from) =>
                 from!.State == "off" &&
                 to!.State == "on" &&
-                GetWashingMachineState() != WashingMachineState.R)
+                GetWashingMachineState() != WashingMachineState.Running)
             .Call(async (_, __, ___) =>
             {
                 CancelWashingDoneTimer();
