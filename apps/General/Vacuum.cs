@@ -9,24 +9,36 @@ public class Vacuum : NetDaemonApp
     private readonly Dictionary<string, List<int>> _roomMapping =
         new Dictionary<string, List<int>>
         {
-            {"office", new List<int> {1}},
-            {"toilet", new List<int> {1}},
-            {"bath", new List<int> {1}},
-            {"media", new List<int> {1}},
-            {"gym", new List<int> {1}},
-            {"marissasoffice", new List<int> {1}},
-            {"entry", new List<int> {1}},
-            {"living", new List<int> {1}},
-            {"dining", new List<int> {1}},
-            {"guest", new List<int> {1}},
-            {"master", new List<int> {1}},
-            {"laundry", new List<int> {1}},
-            {"kitchen", new List<int> {1}},
-            {"tiles", new List<int> {1}}
+            {"office", new List<int> {21}},
+            {"toilet", new List<int> {23}},
+            {"hallway", new List<int> {24}},
+            {"bath", new List<int> {3}},
+            {"media", new List<int> {17}},
+            {"gym", new List<int> {19}},
+            {"marissasoffice", new List<int> {5}},
+            {"entry", new List<int> {22}},
+            {"living", new List<int> {16}},
+            {"dining", new List<int> {18}},
+            {"guest", new List<int> {2}},
+            {"master", new List<int> {25}},
+            {"ensuite", new List<int> {26}},
+            {"laundry", new List<int> {27}},
+            {"kitchen", new List<int> {20}}
         };
 
     public override Task InitializeAsync()
     {
+        _roomMapping.Add("tiles", 
+            _roomMapping["toilet"]
+                .Union(_roomMapping["hallway"])
+                .Union(_roomMapping["bath"])
+                .Union(_roomMapping["entry"])
+                .Union(_roomMapping["living"])
+                .Union(_roomMapping["dining"])
+                .Union(_roomMapping["laundry"])
+                .Union(_roomMapping["kitchen"])
+                .ToList());
+
         Entity("input_select.vacuum_reset_consumable")
             .WhenStateChange(from: "Select Input")
             .Call(async (_, to, ___) =>
@@ -134,9 +146,11 @@ public class Vacuum : NetDaemonApp
         return base.InitializeAsync();
     }
 
-    public async Task CleanRoom(string room)
+    private async Task CleanRoom(string room)
     {
-        var sanitizeRoom = room.RemoveNonAlphaCharacters().Replace("room", string.Empty);
+        var sanitizeRoom = room.ToLower().RemoveNonAlphaCharacters()
+            .Replace("the", string.Empty)
+            .Replace("room", string.Empty);
 
         var roomMappingName = _roomMapping.Keys.FirstOrDefault(k => sanitizeRoom.Contains(k));
 
