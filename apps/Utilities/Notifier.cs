@@ -120,9 +120,6 @@ public static class Notifier
 
         if (ttsEnabled == "on")
         {
-            // TEMP FOR DEBUGGING
-            await SendTextNotifications(app, "TTS TEST", message, NotificationCriteria.Always, new[] { TextNotificationDevice.Daniel });
-
             await app.CallService("media_player", "turn_on", new
             {
                 entity_id = GetAudioNotificationDeviceName(AudioNotificationDevice.Home)

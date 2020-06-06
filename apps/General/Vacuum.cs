@@ -81,7 +81,8 @@ public class Vacuum : NetDaemonApp
             .AndNotChangeFor(TimeSpan.FromMinutes(60))
             .Call(async (_, __, ___) =>
             {
-                if (GetState("input_boolean.vacuumed_today")!.State == "off")
+                if (GetState("input_boolean.vacuumed_today")!.State == "off") 
+                    // TODO:  and not currnetly cleaning or returning to dock
                 {
                     await this.Notify(
                         "Vacuum",

@@ -27,7 +27,7 @@ public class Presence : NetDaemonApp
 
         Entity("person.marissa")
             .WhenStateChange(from: "not_home", to: "home")
-            .AndNotChangeFor(new TimeSpan(0, 5, 0))
+            .AndNotChangeFor(new TimeSpan(0, 1, 0))
             .Call(async (_, __, ___) =>
             {
 
@@ -41,7 +41,7 @@ public class Presence : NetDaemonApp
                     Notifier.TextNotificationDevice.Daniel);
 
                 // Been home for some time
-                if (DateTime.Now - daniel.LastChanged >= new TimeSpan(0, 2, 0) && daniel.State == "home")
+                if (___.LastChanged - daniel.LastChanged >= new TimeSpan(0, 2, 0) && daniel.State == "home")
                 {
                     await Notify();
                 }

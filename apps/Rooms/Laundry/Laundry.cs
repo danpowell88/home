@@ -71,6 +71,7 @@ public class Laundry : RoomApp
                 to!.State == WashingMachineState.Clean.ToString("F"))
             .Call(async (_, __, ___) =>
             {
+                Log(LogLevel.Information, "washing state changed");
                 CancelWashingDoneTimer();
 
                 _washingDoneTimer = Scheduler.RunEvery(TimeSpan.FromMinutes(30), async () =>
@@ -112,6 +113,7 @@ public class Laundry : RoomApp
         if (_washingDoneTimer != null)
         {
             _washingDoneTimer.CancelSource.Cancel();
+            _washingDoneTimer.CancelSource.Dispose();
             _washingDoneTimer = null;
         }
     }
