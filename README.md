@@ -11,6 +11,7 @@
 * Ignore lights on based on lux
 * ~~Set google home volume based on time of day / bed presence~~
 * Bin day notification
+* Blinds https://everythingsmarthome.co.uk/esp8266/diy-motorised-smart-blinds/
 
 ### Presence
 * Turn off ~~lights~~ and devices when left home
