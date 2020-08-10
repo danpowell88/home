@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-
 public static class StringExtensions
 {
     public static string RemoveNonAlphaCharacters(this string str)

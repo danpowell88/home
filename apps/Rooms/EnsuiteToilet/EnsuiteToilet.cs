@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using JetBrains.Annotations;
 
 [UsedImplicitly]
@@ -9,15 +8,15 @@ public class EnsuiteToilet : RoomApp
     protected override bool PresenceLightingEnabled => false;
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(10);
 
-    public override Task InitializeAsync()
+    public override void Initialize()
     {
-        Entity("light.ensuitetoilet")
-            .WhenStateChange(from: "off", to: "on")
-            .AndNotChangeFor(OccupancyTimeoutObserved)
-            .UseEntity("light.ensuitetoilet")
-            .TurnOff()
-            .Execute();
+        //Entity("light.ensuitetoilet")
+        //    .WhenStateChange(from: "off", to: "on")
+        //    .AndNotChangeFor(OccupancyTimeoutObserved)
+        //    .UseEntity("light.ensuitetoilet")
+        //    .TurnOff()
+        //    .Execute();
 
-        return base.InitializeAsync();
+        base.Initialize();
     }
 }

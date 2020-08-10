@@ -1,5 +1,5 @@
 using System;
-using JoySoftware.HomeAssistant.NetDaemon.Common;
+using NetDaemon.Common.Fluent;
 
 public static class IFluentInputSelectExtensions
 {

@@ -1,7 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using JoySoftware.HomeAssistant.NetDaemon.Common;
 
 [UsedImplicitly]
 public class Pantry : RoomApp
@@ -9,9 +8,9 @@ public class Pantry : RoomApp
     protected override bool IndoorRoom => true;
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(2);
 
-    private ISchedulerResult? _fridgeOpenTimer;
+    //private ISchedulerResult? _fridgeOpenTimer;
 
-    public override Task InitializeAsync()
+    public override void Initialize()
     {
         //Entity("binary_sensor.fridge_door_contact")
         //    .WhenStateChange(from: "off", to: "on")
@@ -41,29 +40,29 @@ public class Pantry : RoomApp
         //        await Task.CompletedTask;
         //    }).Execute();
 
-        Entity("binary_sensor.fridge_door_contact")
-            .WhenStateChange(from: "on", to: "off").Call(async (_, __, ___) =>
-            {
-                CancelOpenTimer();
-                await Task.CompletedTask;
-            }).Execute();
+        //Entity("binary_sensor.fridge_door_contact")
+        //    .WhenStateChange(from: "on", to: "off").Call(async (_, __, ___) =>
+        //    {
+        //        CancelOpenTimer();
+        //        await Task.CompletedTask;
+        //    }).Execute();
 
-        Events(e => e.EventId == "mobile_app_notification_action" && e.Data!.action == "silence_fridge")
-            .Call(async (_, __) =>
-            {
-                CancelOpenTimer();
-                await Task.CompletedTask;
-            }).Execute();
+        //Events(e => e.EventId == "mobile_app_notification_action" && e.Data!.action == "silence_fridge")
+        //    .Call(async (_, __) =>
+        //    {
+        //        CancelOpenTimer();
+        //        await Task.CompletedTask;
+        //    }).Execute();
 
-        return base.InitializeAsync();
+        base.Initialize();
     }
 
-    private void CancelOpenTimer()
-    {
-        if (_fridgeOpenTimer != null)
-        {
-            _fridgeOpenTimer.CancelSource.Cancel();
-            _fridgeOpenTimer = null;
-        }
-    }
+    //private void CancelOpenTimer()
+    //{
+    //    if (_fridgeOpenTimer != null)
+    //    {
+    //        _fridgeOpenTimer.CancelSource.Cancel();
+    //        _fridgeOpenTimer = null;
+    //    }
+    //}
 }
