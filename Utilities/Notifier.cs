@@ -1,9 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Threading.Tasks;
 using EnumsNET;
-using NetDaemon.Common;
 using NetDaemon.Common.Reactive;
 
 public static class Notifier

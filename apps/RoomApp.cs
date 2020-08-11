@@ -34,8 +34,7 @@ public abstract class RoomApp : NetDaemonRxApp
 
     public Func<IEntityProperties, bool> MotionSensors => e => IsEntityMatch(e, EntityType.BinarySensor, DeviceClass.Motion);
     public Func<IEntityProperties, bool> OccupancySensors => e => IsEntityMatch(e, EntityType.BinarySensor, DeviceClass.Occupancy);
-    //public Func<IEntityProperties, bool> PowerSensors => e => IsEntityMatch(e, EntityType.Sensor, DeviceClass.Power) && e.Attribute!.active_threshold != null;
-    public Func<IEntityProperties, bool> PowerSensors => e => false;
+    public Func<IEntityProperties, bool> PowerSensors => e => IsEntityMatch(e, EntityType.Sensor, DeviceClass.Power) && e.Attribute!.active_threshold != null;
     public Func<IEntityProperties, bool> MediaPlayerDevices => e => IsEntityMatch(e, EntityType.MediaPlayer);
     public Func<IEntityProperties, bool> PrimaryLights =>
         e => IsEntityMatch(e, EntityType.Light) && (string?)e.Attribute!.type != "secondary";
@@ -45,8 +44,7 @@ public abstract class RoomApp : NetDaemonRxApp
 
     public Func<IEntityProperties, bool> Lights => e => PrimaryLights(e) || SecondaryLights(e);
 
-    //public Func<IEntityProperties, bool> Workstations => e => IsEntityMatch(e, EntityType.WorkStation);
-    public Func<IEntityProperties, bool> Workstations => e => false;
+    public Func<IEntityProperties, bool> Workstations => e => IsEntityMatch(e, EntityType.WorkStation);
     public Func<IEntityProperties, bool> EntryPoints =>
         e => IsEntityMatch(e, EntityType.BinarySensor, DeviceClass.Door, DeviceClass.Window) ||
              IsEntityMatch(e, EntityType.Cover, DeviceClass.Garage);
@@ -118,12 +116,6 @@ public abstract class RoomApp : NetDaemonRxApp
                     .StateChangesFiltered()
                     .NDSameStateFor(MediaPlayerDebounce);
 
-            //var lightsOn =
-            //    Entities(Lights)
-            //        .StateChangesFiltered()
-            //        .Where(s => s.Old.State == "off" && s.New.State == "on");
-
-
             var workstationChanges = workStationOn.Merge(workstationOff);
 
             Observable.Merge(
@@ -166,6 +158,10 @@ public abstract class RoomApp : NetDaemonRxApp
                 else
                     OccupancyOff();
             });
+
+            Entities(MasterOffSwitches).StateChangesFiltered()
+                .Where(s => s.New.State == "single")
+                .Subscribe(_ => TurnEveryThingOff());
 
             // on startup initalise state
             if (AnyOccupanyMarkers() || this.AnyStatesAre(Lights, "on"))
@@ -246,6 +242,11 @@ public abstract class RoomApp : NetDaemonRxApp
     public void OccupancyOff()
     {
         ToggleLights(false);
+    }
+
+    protected virtual void TurnEveryThingOff()
+    {
+        this.TurnEverythingOff();
     }
 
     public void StartTimer()

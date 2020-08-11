@@ -31,15 +31,16 @@ public static class EntityQueries
         return app.States.Where(s => entityFilter(s) && s.State != null).Any(propertyFilter);
     }
 
-    public static async Task<bool> TrueNowAndAfter(this NetDaemonRxApp app, Func<bool> condition, TimeSpan waitDuration)
-    {
-        if (condition())
-        {
-            await Task.Delay(waitDuration);
+    //public static bool TrueNowAndAfter(this NetDaemonRxApp app, Func<bool> condition, TimeSpan waitDuration)
+    //{
+    //    if (condition())
+    //    {
+            
+    //        Task.Delay(waitDuration);
 
-            return condition();
-        }
+    //        return condition();
+    //    }
 
-        return false;
-    }
+    //    return false;
+    //}
 }

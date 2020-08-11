@@ -1,5 +1,7 @@
 using System;
+using System.Reactive.Linq;
 using JetBrains.Annotations;
+using NetDaemon.Common.Reactive;
 
 [UsedImplicitly]
 public class EnsuiteShower : RoomApp
@@ -9,12 +11,11 @@ public class EnsuiteShower : RoomApp
 
     public override void Initialize()
     {
-        //Entity("fan.ensuiteshower_fan")
-        //    .WhenStateChange(from: "off", to: "on")
-        //    .AndNotChangeFor(OccupancyTimeoutObserved)
-        //    .UseEntity("fan.ensuiteshower_fan")
-        //    .TurnOff()
-        //    .Execute();
+        Entity("fan.ensuiteshower_fan")
+            .StateChangesFiltered()
+            .Where(tuple => tuple.Old.State == "off" && tuple.New.State == "on")
+            .NDSameStateFor(OccupancyTimeoutObserved)
+            .Subscribe(tuple => Entity(tuple.New.EntityId).TurnOff());
 
         base.Initialize();
     }

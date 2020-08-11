@@ -1,10 +1,10 @@
 using System;
-using NetDaemon.Common.Fluent;
+using NetDaemon.Common.Reactive;
 
-public static class IFluentInputSelectExtensions
+public static class AppExtensions
 {
-    public static IFluentExecuteAsync SetOption<T>(this IFluentInputSelect select, T theEnum) where T : Enum
+    public static void SetOption<T>(this RxEntity entity, T theEnum) where T : Enum
     {
-        return select.SetOption(theEnum.ToString("F"));
+        entity.CallService("select_option", new {option = theEnum.ToString("F")});
     }
 }

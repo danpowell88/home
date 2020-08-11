@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Reactive.Linq;
 using JetBrains.Annotations;
+using NetDaemon.Common.Reactive;
 
 [UsedImplicitly]
 public class Media : RoomApp
@@ -10,37 +12,33 @@ public class Media : RoomApp
 
     public override void Initialize()
     {
-        // TODO: lambda causes this to fire continuosly after 3 minutes so lights always keep turning off
         // Lights off when movie is playing
-        //Entity("media_player.media_emby")
-        //    .WhenStateChange((to, from) => 
-        //        to!.State == "playing"
-        //            && to.Attribute!.media_content_type == "movie")
-        //    .AndNotChangeFor(TimeSpan.FromMinutes(3))
-        //    .UseEntities(e => e.EntityId.StartsWith("light."))
-        //    .TurnOff()
-        //    .Execute();
+        Entity("media_player.media_emby")
+            .StateChangesFiltered()
+            .Where(s =>
+                s.New!.State == "playing"
+                && s.New.Attribute!.media_content_type == "movie")
+            .NDSameStateFor(TimeSpan.FromMinutes(3))
+            .Subscribe(_ => Entities(e => e.EntityId.StartsWith("light.")).TurnOff());
 
-        // TODO: this didnt seem to trigger and would cause lights to continuosly turn on, maybe not that much of a big deal but ineffecient
         // Lights on when 5 minutes before end of movie
-        //Entity("media_player.media_emby")
-        //    .WhenStateChange((to, from) =>
-        //        to!.Attribute!.media_content_type == "movie" &&
-        //        to.Attribute.media_duration - to.Attribute.media_position == 300 &&
-        //        to.State == "playing")
-        //    .UseEntities(e => e.EntityId.StartsWith("light.media"))
-        //    .TurnOn()
-        //    .Execute();
+        Entity("media_player.media_emby")
+            .StateAllChanges
+            .Where(s =>
+                s.New!.Attribute!.media_content_type == "movie" &&
+                s.New.Attribute!.media_duration - s.New.Attribute.media_position == 300 &&
+                s.New.State == "playing")
+            .Subscribe(_ => Entity("light.media").TurnOn());
 
-        //// Light toilet when paused
-        //Entity("media_player.media_emby")
-        //    .WhenStateChange((to, from) =>
-        //        to!.Attribute!.media_content_type == "movie" &&
-        //        from!.State == "playing" &&
-        //        to.State == "paused")
-        //    .UseEntities(new List<string> {"light.media", "light.dining", "light.hallway", "light.toilet"})
-        //    .TurnOn()
-        //    .Execute();
+        // Light toilet when paused
+        Entity("media_player.media_emby")
+            .StateAllChanges
+            .Where(s =>
+                s.New!.Attribute!.media_content_type == "movie" &&
+                s.Old!.State == "playing" &&
+                s.New.State == "paused")
+            .Subscribe(_ =>
+                Entities(new List<string> {"light.media", "light.dining", "light.hallway", "light.toilet"}).TurnOn());
 
         base.Initialize();
     }

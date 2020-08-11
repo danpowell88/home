@@ -1,5 +1,7 @@
 using System;
+using System.Reactive.Linq;
 using JetBrains.Annotations;
+using NetDaemon.Common.Reactive;
 
 [UsedImplicitly]
 public class Bathroom : RoomApp
@@ -7,15 +9,13 @@ public class Bathroom : RoomApp
     protected override bool IndoorRoom => true;
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(2);
 
-
     public override void Initialize()
     {
-        //Entity("fan.bathroom_fan")
-        //    .WhenStateChange(from: "off", to: "on")
-        //    .AndNotChangeFor(OccupancyTimeoutObserved)
-        //    .UseEntity("fan.bathroom_fan")
-        //    .TurnOff()
-        //    .Execute();
+        Entity("fan.bathroom_fan")
+            .StateChangesFiltered()
+            .Where(tuple => tuple.Old.State == "off" &&  tuple.New.State == "on")
+            .NDSameStateFor(OccupancyTimeoutObserved)
+            .Subscribe(tuple => Entity(tuple.New.EntityId).TurnOff());
 
         base.Initialize();
     }

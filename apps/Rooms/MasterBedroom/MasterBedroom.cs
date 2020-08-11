@@ -1,39 +1,29 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using JetBrains.Annotations;
 
 [UsedImplicitly]
 public class MasterBedroom : RoomApp
 {
-    public override void Initialize()
+    protected override void TurnEveryThingOff()
     {
-        //Entity("binary_sensor.bed_occupancy")
-        //    .WhenStateChange(from: "on", to: "off")
-        //    .Call((_, __, ___) => StartTimer());
-
-        base.Initialize();
+        if (!this.IsAnyoneInBed())
+        {
+            this.TurnEverythingOff(excludeEntities: new string[0]);
+        }
+        else if (this.IsEveryoneInBed())
+        {
+            this.TurnEverythingOff(excludeEntities: "fan.masterbedroom_fan");
+        }
+        else
+        {
+             this.TurnEverythingOff(RoomName, excludeEntities: "fan.masterbedroom_fan");
+             this.TurnEverythingOff(nameof(MasterBedroomRobe));
+             this.TurnEverythingOff(nameof(Ensuite));
+             this.TurnEverythingOff(nameof(EnsuiteShower));
+             this.TurnEverythingOff(nameof(Entry));
+        }
     }
-
-    //protected override async Task TurnEveryThingOff()
-    //{
-    //    if (!this.IsAnyoneInBed())
-    //    {
-    //        await this.TurnEverythingOff(excludeEntities:new string[0]);
-    //    }
-    //    else if (this.IsEveryoneInBed())
-    //    {
-    //        await this.TurnEverythingOff(excludeEntities: "fan.masterbedroom_fan");
-    //    }
-    //    else
-    //    {
-    //        await this.TurnEverythingOff(RoomPrefix, excludeEntities: "fan.masterbedroom_fan");
-    //        await this.TurnEverythingOff(nameof(MasterBedroomRobe));
-    //        await this.TurnEverythingOff(nameof(Ensuite));
-    //        await this.TurnEverythingOff(nameof(EnsuiteShower));
-    //        await this.TurnEverythingOff(nameof(Entry));
-    //    }
-    //}
 
     protected override bool SecondaryLightingEnabled => State("person.marissa")!.State == "not_home" ||
                                                         State("input_boolean.party_mode")!.State == "on";
@@ -62,7 +52,7 @@ public class MasterBedroom : RoomApp
     {
         get
         {
-            var bed = State("binary_sensor.bed_occupancy");
+            var bed = State("binary_sensor.bed_occupancy")!;
             var bedState = bed.State;
 
             // only control lighting when no one in bed and has been that way for 10 mins

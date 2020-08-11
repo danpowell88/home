@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Reactive.Linq;
 using JetBrains.Annotations;
+using NetDaemon.Common.Reactive;
 
 [UsedImplicitly]
 public class Study : RoomApp
 {
     protected override bool IndoorRoom => true;
-    //protected override bool DebugMode => true;
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(10);
 
     public string? MonitorSwitch => "switch.office_pc_monitors";
@@ -13,29 +14,29 @@ public class Study : RoomApp
 
     public override void Initialize()
     {
-        
-            //Entity(PcUsage!)
-            //    .WhenStateChange(from: "off", to: "on")
-            //    .AndNotChangeFor(TimeSpan.FromSeconds(3))
-            //    .Call(PcInUseAction)
-            //    .Execute();
+        Entity(PcUsage!)
+            .StateChangesFiltered()
+            .Where(s => s.Old.State == "off" && s.New.State == "on")
+            .NDSameStateFor(TimeSpan.FromSeconds(3))
+            .Subscribe(_ => PcInUseAction());
+            
 
-            //Entity(PcUsage!)
-            //    .WhenStateChange(from: "on", to: "off")
-            //    .AndNotChangeFor(TimeSpan.FromMinutes(1))
-            //    .Call(PcNotInUseAction)
-            //    .Execute();
+        Entity(PcUsage!)
+            .StateChangesFiltered()
+            .Where(s => s.Old.State == "on" && s.New.State == "off")
+            .NDSameStateFor(TimeSpan.FromMinutes(1))
+            .Subscribe(_ => PcNotInUseAction());
 
-            base.Initialize();
+        base.Initialize();
     }
 
-    //private async Task PcInUseAction(string arg1, EntityState? arg2, EntityState? arg3)
-    //{
-    //    await Entity(MonitorSwitch!).TurnOn().ExecuteAsync();
-    //}
+    private void PcInUseAction()
+    {
+        Entity(MonitorSwitch!).TurnOn();
+    }
 
-    //private async Task PcNotInUseAction(string arg1, EntityState? arg2, EntityState? arg3)
-    //{
-    //    await Entity(MonitorSwitch!).TurnOff().ExecuteAsync();
-    //}
+    private void PcNotInUseAction()
+    {
+        Entity(MonitorSwitch!).TurnOff();
+    }
 }

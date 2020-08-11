@@ -1,74 +1,78 @@
 using System;
+using System.Reactive.Linq;
 using JetBrains.Annotations;
+using NetDaemon.Common.Reactive;
 
 [UsedImplicitly]
 public class Gym : RoomApp
 {
-    public string? Training { get; set; }
-    public string? Climate { get; set; }
-    public string? BikeFanSwitch { get; set; }
-    public string? WeightFanSwitch { get; set; }
-    public string? FanButton { get; set; }
-
+    private const string Training = "sensor.gym_trainer_wattage";
+    private const string Climate = "sensor.gym_temperature";
+    private const string BikeFanSwitch = "switch.gym_bike_fan";
+    private const string WeightFanSwitch = "switch.gym_weights_fan";
+    private const string FanButton = "sensor.gym_switch_click";
     private const int FanTriggerTemp = 25;
 
     public override void Initialize()
     {
-        //Entity(Training!)
-        //    .WhenStateChange((from, to) =>
-        //        (to!.State ?? 0L) >= State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold &&
-        //        GetState(Climate!)!.State >= FanTriggerTemp)
-        //    .AndNotChangeFor(TimeSpan.FromMinutes(1))
-        //    .Call(BikeTrainingAction)
-        //    .Execute();
+        Entity(Training!)
+            .StateChangesFiltered()
+            .Where(s =>
+                (s.New!.State ?? 0L) >= s.New.Attribute!.active_threshold &&
+                State(Climate!)!.State >= FanTriggerTemp)
+            .NDSameStateFor(TimeSpan.FromMinutes(1))
+            .Subscribe(_ => BikeTrainingAction());
 
-        //Entity(Climate!)
-        //    .WhenStateChange((from, to) =>
-        //        (decimal?)from!.State! < FanTriggerTemp &&
-        //        (decimal?)to!.State! >= FanTriggerTemp &&
-        //        GetState(Training!)!.State == "on")
-        //    .Call(BikeTrainingAction)
-        //    .Execute();
 
-        //Entity(Training!)
-        //    .WhenStateChange((from, to) =>
-        //        (to!.State ?? 0L) < State.Single(s => s.EntityId == to.EntityId!).Attribute!.active_threshold)
-        //            .AndNotChangeFor(TimeSpan.FromMinutes(2))
-        //    .Call(NoBikeTrainingAction)
-        //    .Execute();
+        Entity(Climate!)
+            .StateChangesFiltered()
+            .Where(s =>
+                (decimal?)s.Old!.State! < FanTriggerTemp &&
+                (decimal?)s.New!.State! >= FanTriggerTemp &&
+                State(Training!)!.State == "on")
+            .Subscribe(_ => BikeTrainingAction());
 
-        //Entity(FanButton!)
-        //    .WhenStateChange(to: "left")
-        //    .Call(ToggleBikeFan)
-        //    .Execute();
 
-        //Entity(FanButton!)
-        //    .WhenStateChange(to: "right")
-        //    .Call(ToggleWeightFan)
-        //    .Execute();
+        Entity(Training!)
+            .StateChangesFiltered()
+            .Where(s =>
+                (s.New!.State ?? 0L) < s.New.Attribute!.active_threshold)
+            .NDSameStateFor(TimeSpan.FromMinutes(2))
+            .Subscribe(_ => NoBikeTrainingAction());
+
+
+        Entity(FanButton!)
+            .StateChangesFiltered()
+            .Where(s => s.New.State == "left")
+            .Subscribe(_ => ToggleBikeFan());
+
+        Entity(FanButton!)
+          .StateChangesFiltered()
+            .Where(s => s.New.State == "right")
+            .Subscribe(_ => ToggleWeightFan());
 
         base.Initialize();
     }
 
-    //private async Task ToggleWeightFan(string arg1, EntityState? arg2, EntityState? arg3)
-    //{
-    //    await Entity(WeightFanSwitch!).Toggle().ExecuteAsync();
-    //}
+    private void ToggleWeightFan()
+    {
+        Entity(WeightFanSwitch!).Toggle();
+    }
 
-    //private async Task ToggleBikeFan(string arg1, EntityState? arg2, EntityState? arg3)
-    //{
-    //    await Entity(BikeFanSwitch!).Toggle().ExecuteAsync();
-    //}
+    private void ToggleBikeFan()
+    {
+        Entity(BikeFanSwitch!).Toggle();
+    }
 
-    //private async Task BikeTrainingAction(string arg1, EntityState? arg2, EntityState? arg3)
-    //{
-    //    await Entity(BikeFanSwitch!).TurnOn().ExecuteAsync();
-    //}
+    private void BikeTrainingAction()
+    {
+        Entity(BikeFanSwitch!).TurnOn();
+    }
 
-    //private async Task NoBikeTrainingAction(string arg1, EntityState? arg2, EntityState? arg3)
-    //{
-    //    await Entity(BikeFanSwitch!).TurnOff().ExecuteAsync();
-    //}
+    private void NoBikeTrainingAction()
+    {
+        Entity(BikeFanSwitch!).TurnOff();
+    }
 
     protected override bool IndoorRoom => true;
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(10);

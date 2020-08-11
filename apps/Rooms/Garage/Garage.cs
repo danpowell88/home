@@ -1,6 +1,7 @@
 using System;
+using System.Reactive.Linq;
 using JetBrains.Annotations;
-
+using NetDaemon.Common.Reactive;
 
 [UsedImplicitly]
 public class Garage : RoomApp
@@ -8,80 +9,74 @@ public class Garage : RoomApp
     protected override bool IndoorRoom => true;
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(10);
 
-    //private ISchedulerResult? _garageOpenTimer;
+    private IDisposable? _garageOpenTimer;
 
     public override void Initialize()
     {
-        //Entity("cover.garage_door")
-        //    .WhenStateChange(from: "closed", to: "open")
-        //    .AndNotChangeFor(TimeSpan.FromMinutes(20))
-        //.Call(
-        //    async (_, __, ___) =>
-        //    {
-        //        CancelOpenTimer();
+        Entity("cover.garage_door")
+            .StateChangesFiltered()
+            .Where(s => s.Old.State == "closed" && s.New.State == "open")
+            .NDSameStateFor(TimeSpan.FromMinutes(20))
+            .Subscribe(s =>
+            {
+                CancelOpenTimer();
 
-        //       _garageOpenTimer = Scheduler.RunEvery(TimeSpan.FromMinutes(20), async () =>
-        //       {
-        //            if (GetState("cover.garage_door")!.State == "open")
-        //            {
-        //                var filename = $"{Guid.NewGuid()}.jpg";
+                _garageOpenTimer = RunEvery(TimeSpan.FromMinutes(20), () =>
+                {
+                    if (State("cover.garage_door")!.State == "open")
+                    {
+                        var filename = $"{Guid.NewGuid()}.jpg";
 
-        //                await CallService("camera", "snapshot", new
-        //                {
-        //                    filename = $"www/snapshots/tmp/{filename}",
-        //                    entity_id = "camera.garage"
-        //                }, true);
+                        CallService("camera", "snapshot", new
+                        {
+                            filename = $"www/snapshots/tmp/{filename}",
+                            entity_id = "camera.garage"
+                        });
 
-        //                await this.Notify(
-        //                    "Security",
-        //                    $"The garage door has been left open",
-        //                    Notifier.NotificationCriteria.Always,
-        //                    Notifier.NotificationCriteria.Home,
-        //                    new[]
-        //                    {
-        //                        new Notifier.NotificationAction ("close_garage", "Close"),
-        //                        new Notifier.NotificationAction ("silence_garage", "Silence")
-        //                    },
-        //                    $"https://home.danielpowell.net/local/snapshots/tmp/{filename}",
-        //                    Notifier.TextNotificationDevice.All);
-        //            }
-        //        });
+                        this.Notify(
+                            "Security",
+                            $"The garage door has been left open",
+                            Notifier.NotificationCriteria.Always,
+                            Notifier.NotificationCriteria.Home,
+                            new[]
+                            {
+                                new Notifier.NotificationAction("close_garage", "Close"),
+                                new Notifier.NotificationAction("silence_garage", "Silence")
+                            },
+                            $"https://home.danielpowell.net/local/snapshots/tmp/{filename}",
+                            Notifier.TextNotificationDevice.All);
+                    }
+                });
+            });
 
-        //        await Task.CompletedTask;
-        //    }).Execute();
+        EventChanges
+            .Where(e => e.Event == "mobile_app_notification_action" && e.Data!.action == "close_garage")
+            .Subscribe(_ =>
+            {
+                if (State("cover.garage_door")!.State == "open")
+                {
+                    CallService("cover", "close_cover", new {entity_id = "cover.garage_door"});
+                }
+            });
 
-        //Events(e => e.EventId == "mobile_app_notification_action" && e.Data!.action == "close_garage")
-        //    .Call(async (_, __) =>
-        //    {
-        //        if (GetState("cover.garage_door")!.State == "open")
-        //        {
-        //            await CallService("cover", "close_cover", new {entity_id = "cover.garage_door"});
-        //        }
-        //    }).Execute();
+        EventChanges
+            .Where(e => e.Event == "mobile_app_notification_action" && e.Data!.action == "silence_garage")
+            .Subscribe(_ => { CancelOpenTimer(); });
 
-        //Events(e => e.EventId == "mobile_app_notification_action" && e.Data!.action == "silence_garage")
-        //    .Call(async (_, __) =>
-        //    {
-        //        CancelOpenTimer();
-        //        await Task.CompletedTask;
-        //    }).Execute();
-
-        //Entity("cover.garage_door")
-        //    .WhenStateChange(from: "open", to: "closed").Call(async (_, __, ___) =>
-        //    {
-        //        CancelOpenTimer();
-        //        await Task.CompletedTask;
-        //    }).Execute();
+        Entity("cover.garage_door")
+            .StateChangesFiltered()
+            .Where(s => s.Old.State=="open" && s.New.State == "closed")
+            .Subscribe(_ => CancelOpenTimer());
 
         base.Initialize();
     }
 
-    //private void CancelOpenTimer()
-    //{
-    //    if (_garageOpenTimer != null)
-    //    {
-    //        _garageOpenTimer.CancelSource.Cancel();
-    //        _garageOpenTimer = null;
-    //    }
-    //}
+    private void CancelOpenTimer()
+    {
+        if (_garageOpenTimer != null)
+        {
+            _garageOpenTimer.Dispose();
+            _garageOpenTimer = null;
+        }
+    }
 }
