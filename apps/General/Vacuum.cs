@@ -10,7 +10,7 @@ public class Vacuum : NetDaemonRxApp
         new Dictionary<string, List<int>>
         {
             {"office", new List<int> {21}},
-            {"s.New.State ==ilet", new List<int> {23}},
+            {"toilet", new List<int> {23}},
             {"hallway", new List<int> {24}},
             {"bath", new List<int> {3}},
             {"media", new List<int> {17}},
