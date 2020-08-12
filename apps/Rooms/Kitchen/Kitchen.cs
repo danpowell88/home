@@ -4,7 +4,6 @@ using System.Reactive.Linq;
 using EnumsNET;
 using JetBrains.Annotations;
 using NetDaemon.Common;
-using NetDaemon.Common.Fluent;
 using NetDaemon.Common.Reactive;
 
 [UsedImplicitly]

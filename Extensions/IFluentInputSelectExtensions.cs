@@ -7,4 +7,9 @@ public static class AppExtensions
     {
         entity.CallService("select_option", new {option = theEnum.ToString("F")});
     }
+
+    public static void SetOption(this RxEntity entity, string option) 
+    {
+        entity.CallService("select_option", new { option = option });
+    }
 }
