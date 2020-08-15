@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using daemonapp.Utilities;
 using JetBrains.Annotations;
 using NetDaemon.Common.Reactive;
 
@@ -19,12 +20,23 @@ public class Devices : NetDaemonRxApp
         // once a day check if any sensors battery below 25%
         RunDaily("12:00:00", () =>
         {
+            LogHelper.Log(this, nameof(Devices), "Low battery check");
+
             var lowBatteries =
                 States.Where(e =>
-                        e.Attribute!.device_class == "battery" &&
+                {
+                    if (e.Attribute!.device_class == "battery" &&
                         e.Attribute.unit_of_measurement == "%" &&
-                        e.Attribute.alert != false &&
-                        e.State < 25);
+                        e.Attribute.alert != false)
+                    {
+                        var parse = long.TryParse(e.State.ToString(), out long value);
+
+                        if (parse)
+                            return value < 25;
+                    }
+
+                    return false;
+                }).ToList();
 
             foreach (var lowBattery in lowBatteries)
             {

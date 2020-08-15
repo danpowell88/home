@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reactive.Linq;
+using daemonapp.Utilities;
 using NetDaemon.Common.Reactive;
 
 public class Presence : NetDaemonRxApp
@@ -20,7 +21,11 @@ public class Presence : NetDaemonRxApp
         Entity("input_boolean.left_home")
             .StateChangesFiltered()
             .Where(s => s.Old.State == "off" && s.New.State == "on")
-            .Subscribe(_ => this.TurnEverythingOff());
+            .Subscribe(_ =>
+            {
+                LogHelper.Log(this, nameof(Presence), "Everyone left home");
+                this.TurnEverythingOff();
+            });
 
         Entity("person.marissa")
             .StateChangesFiltered()
@@ -28,6 +33,8 @@ public class Presence : NetDaemonRxApp
             .NDSameStateFor(new TimeSpan(0, 1, 0))
             .Subscribe(s =>
             {
+                LogHelper.Log(this, nameof(Presence), "Marissa arrived home notification");
+
                 var daniel = State("person.daniel")!;
 
                 Action Notify() => () => this.Notify(

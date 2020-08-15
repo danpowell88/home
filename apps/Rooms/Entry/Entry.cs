@@ -8,5 +8,5 @@ public class Entry : RoomApp
 
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(2);
 
-    protected override bool PresenceLightingEnabled => !this.IsAnyoneInBed() && base.PresenceLightingEnabled;
+    protected override bool AutomatedLightsOn => !this.IsAnyoneInBed() && base.AutomatedLightsOn;
 }

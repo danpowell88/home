@@ -88,7 +88,6 @@ public class Vacuum : NetDaemonRxApp
             {
                 if (State("input_boolean.vacuumed_today")!.State == "off" &&
                     State("vacuum.xiaomi_vacuum_cleaner")!.State == "docked")
-                    // TODO and not currently cleaning or returning to dock
                 {
                     this.Notify(
                         "Vacuum",

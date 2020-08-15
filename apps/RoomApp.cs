@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reactive.Linq;
+using daemonapp.Utilities;
 using EnumsNET;
 using Humanizer;
 using Microsoft.Extensions.Logging;
@@ -12,12 +13,17 @@ using NetDaemon.Common.Reactive;
 
 public abstract class RoomApp : NetDaemonRxApp
 {
-    protected virtual bool DebugMode => false;
+    // ReSharper disable once RedundantLogicalConditionalExpressionOperand
+    protected virtual bool DebugMode => SingleRoomModeName == RoomName || false;
+
+    private readonly string? SingleRoomModeName = "";
 
     protected abstract bool IndoorRoom { get; }
-    protected virtual bool PresenceLightingEnabled => IndoorRoom ?
+    protected virtual bool AutomatedLightsOn => IndoorRoom ?
         State("input_boolean.indoor_motion_enabled")?.State == "on" :
         State("input_boolean.outdoor_motion_enabled")?.State == "on";
+
+    protected virtual bool AutomatedLightsOff => true;
 
     protected virtual bool AutoDiscoverDevices => true;
 
@@ -61,6 +67,14 @@ public abstract class RoomApp : NetDaemonRxApp
     protected Func<IEntityProperties, bool> MasterOffSwitches => e => IsEntityMatch(e, EntityType.Sensor) && e.Attribute!.switch_type == SwitchType.MasterOff.AsString(EnumFormat.DisplayName, EnumFormat.Name)!.ToLower();
     public override void Initialize()
     {
+        if (!string.IsNullOrWhiteSpace(SingleRoomModeName) && RoomName != SingleRoomModeName)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Single room mode, ignoring room: " + RoomName);
+            Console.ForegroundColor = ConsoleColor.White;
+            return;
+        }
+
         if (AutoDiscoverDevices)
         {
             var roomPresence = Entity(RoomPresenceEntityName);
@@ -79,8 +93,17 @@ public abstract class RoomApp : NetDaemonRxApp
             var occupancySensorChanges = Entities(OccupancySensors).StateChangesFiltered();
 
             var motionSensorChanges = Entities(MotionSensors).StateChangesFiltered();
+
             var entryPointsChanges = Entities(EntryPoints).StateChangesFiltered();
-            var lightsChanges = Entities(Lights).StateChangesFiltered();
+
+
+            // doors/windows require timer but we exclude them from being considered for occupancy
+            var entryPointsOpen = Entities(EntryPoints).StateChangesFiltered()
+                .Where(s => s.Old.State == "off" && s.New.State == "on")
+                .Subscribe(s => StartTimer());
+
+            var lightsOn = Entities(Lights).StateChangesFiltered()
+                .Where(s => s.Old.State == "off" && s.New.State == "on");
 
             var powerSensorOff =
                 Entities(PowerSensors)
@@ -122,7 +145,7 @@ public abstract class RoomApp : NetDaemonRxApp
                 motionSensorChanges,
                 entryPointsChanges,
                 occupancySensorChanges,
-                lightsChanges,
+                lightsOn,
                 powerSensorChanges,
                 workstationChanges,
                 mediaPlayerChanges).Subscribe(tuple =>
@@ -132,6 +155,8 @@ public abstract class RoomApp : NetDaemonRxApp
 
                 if(AnyOccupanyMarkers() || this.AnyStatesAre(Lights, "on"))
                     StartTimer();
+
+                
             });
 
             EventChanges.Where(e => (e.Event == "timer.started" || e.Event == "timer.finished") && e.Data!.entity_id == TimerEntityName)
@@ -161,15 +186,20 @@ public abstract class RoomApp : NetDaemonRxApp
 
             Entities(MasterOffSwitches).StateChangesFiltered()
                 .Where(s => s.New.State == "single")
-                .Subscribe(_ => TurnEveryThingOff());
+                .Subscribe(_ =>
+                {
+                    LogHistory("Turn everything off");
+                    TurnEveryThingOff();
+                });
 
-            // on startup initalise state
-            if (AnyOccupanyMarkers() || this.AnyStatesAre(Lights, "on"))
-                StartTimer();
-            else
+            if (this.AllStatesAre(Lights, "off"))
             {
+                StopTimer();
                 roomPresence.TurnOff();
             }
+
+            if (AnyOccupanyMarkers() || this.AnyStatesAre(Lights, "on"))
+                StartTimer();
         }
         else
         {
@@ -181,6 +211,8 @@ public abstract class RoomApp : NetDaemonRxApp
     {
         if (!DebugMode) return;
 
+        DebugLog("==============================================");
+        DebugLog("Room discovery");
         DebugEntityDiscovery(MotionSensors, nameof(MotionSensors));
         DebugEntityDiscovery(PowerSensors, nameof(PowerSensors));
         DebugEntityDiscovery(MediaPlayerDevices, nameof(MediaPlayerDevices));
@@ -190,6 +222,7 @@ public abstract class RoomApp : NetDaemonRxApp
         DebugEntityDiscovery(Workstations, nameof(Workstations));
         DebugEntityDiscovery(OccupancySensors, nameof(OccupancySensors));
         DebugEntityDiscovery(MasterOffSwitches, nameof(MasterOffSwitches));
+        DebugLog("==============================================");
     }
 
     private void DebugEntityDiscovery(Func<IEntityProperties, bool> searcher, string description)
@@ -226,12 +259,19 @@ public abstract class RoomApp : NetDaemonRxApp
         DebugLog("Occupancy timer is running: {timer}",State(TimerEntityName)?.State);
         DebugLog("-----------------------");
 
-        return this.AnyStatesAre(AllOccupancySensors, "on", "open") ||
-               this.AnyStatesAre(EntryPoints, "on") ||
-               this.AnyStatesAre(MediaPlayerDevices, "playing") ||
-               this.AnyStatesAre(Workstations, "home") ||
-               this.AnyStatesAre(PowerSensors, p => p.State >= p.Attribute!.active_threshold) ||
-               State(TimerEntityName)!.State != "idle";
+        var occupancy = this.AnyStatesAre(AllOccupancySensors, "on", "open");
+        //var entry = this.AnyStatesAre(EntryPoints, "on");
+        var media = this.AnyStatesAre(MediaPlayerDevices, "playing");
+        var workstation = this.AnyStatesAre(Workstations, "home");
+        var power = this.AnyStatesAre(PowerSensors, p => p.State >= p.Attribute!.active_threshold);
+        var timer = State(TimerEntityName)!.State != "idle";
+
+        return occupancy || 
+               //entry || 
+               media || 
+               workstation || 
+               power || 
+               timer;
     }
 
     public void OccupancyOn()
@@ -257,6 +297,14 @@ public abstract class RoomApp : NetDaemonRxApp
         CallService("timer", "start", new {entity_id = TimerEntityName, duration = OccupancyTimeoutObserved.ToString()});
     }
 
+    public void StopTimer()
+    {
+        DebugLog("Stopping timer");
+
+        CallService("timer", "finish", new { entity_id = TimerEntityName });
+    }
+
+
     private bool IsEntityMatch(IEntityProperties prop, EntityType entityType, params DeviceClass[] deviceClasses)
     {
         var entityString = entityType.AsString(EnumFormat.DisplayName, EnumFormat.Name)!.ToLower();
@@ -281,13 +329,14 @@ public abstract class RoomApp : NetDaemonRxApp
 
     public void ToggleLights(bool on)
     {
+        LogHistory($"Turning lights {(on ? "on" : "off")}");
         DebugLog("Toggle lights: {on}", on);
 
         var primaryLights = Entities(PrimaryLights);
         var secondaryLights = Entities(SecondaryLights);
         if (@on)
         {
-            if (!this.AllStatesAre(PrimaryLights, "on") && PresenceLightingEnabled)
+            if (!this.AllStatesAre(PrimaryLights, "on") && AutomatedLightsOn)
             {
                 primaryLights.TurnOn();
             }
@@ -308,7 +357,7 @@ public abstract class RoomApp : NetDaemonRxApp
         }
         else if (!on)
         {
-            if (!this.AllStatesAre(PrimaryLights, "off") && PresenceLightingEnabled)
+            if (!this.AllStatesAre(PrimaryLights, "off") && AutomatedLightsOff)
             {
                 primaryLights.TurnOff();
                 secondaryLights.TurnOff();
@@ -320,6 +369,11 @@ public abstract class RoomApp : NetDaemonRxApp
     {
         if (DebugMode)
             Log(LogLevel.Information, message, data);
+    }
+
+    public void LogHistory(string automation)
+    {
+        LogHelper.Log(this,RoomName.Humanize(),automation);
     }
 }
 

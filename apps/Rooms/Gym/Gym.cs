@@ -21,7 +21,11 @@ public class Gym : RoomApp
                 (s.New!.State ?? 0L) >= s.New.Attribute!.active_threshold &&
                 State(Climate!)!.State >= FanTriggerTemp)
             .NDSameStateFor(TimeSpan.FromMinutes(1))
-            .Subscribe(_ => BikeTrainingAction());
+            .Subscribe(_ =>
+            {
+                LogHistory("Bike training");
+                BikeTrainingAction();
+            });
 
 
         Entity(Climate!)
@@ -30,7 +34,11 @@ public class Gym : RoomApp
                 (decimal?)s.Old!.State! < FanTriggerTemp &&
                 (decimal?)s.New!.State! >= FanTriggerTemp &&
                 State(Training!)!.State == "on")
-            .Subscribe(_ => BikeTrainingAction());
+            .Subscribe(_ =>
+            {
+                LogHistory("Bike training stopped");
+                BikeTrainingAction();
+            });
 
 
         Entity(Training!)
@@ -38,18 +46,30 @@ public class Gym : RoomApp
             .Where(s =>
                 (s.New!.State ?? 0L) < s.New.Attribute!.active_threshold)
             .NDSameStateFor(TimeSpan.FromMinutes(2))
-            .Subscribe(_ => NoBikeTrainingAction());
+            .Subscribe(_ =>
+            {
+                LogHistory("Bike training stopped");
+                NoBikeTrainingAction();
+            });
 
 
         Entity(FanButton!)
             .StateChangesFiltered()
             .Where(s => s.New.State == "left")
-            .Subscribe(_ => ToggleBikeFan());
+            .Subscribe(_ =>
+            {
+                LogHistory("Bike fan toggle");
+                ToggleBikeFan();
+            });
 
         Entity(FanButton!)
           .StateChangesFiltered()
             .Where(s => s.New.State == "right")
-            .Subscribe(_ => ToggleWeightFan());
+            .Subscribe(_ =>
+          {
+              LogHistory("Weight fan toggle");
+              ToggleWeightFan();
+          });
 
         base.Initialize();
     }

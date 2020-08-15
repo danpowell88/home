@@ -32,6 +32,7 @@ public class Laundry : RoomApp
             })
             .Subscribe(_ =>
             {
+                LogHistory("Washing machine running");
                 CancelWashingDoneTimer();
 
                 Entity(WashingMachineStatus).SetOption(WashingMachineState.Running);
@@ -43,14 +44,22 @@ public class Laundry : RoomApp
                 GetWashingMachineWattage(s.New!) < 6D &&
                 GetWashingMachineState() == WashingMachineState.Running)
             .NDSameStateFor(TimeSpan.FromSeconds(170))
-            .Subscribe(_ => Entity(WashingMachineStatus).SetOption(WashingMachineState.Finishing));
+            .Subscribe(_ =>
+            {
+                LogHistory("Washing machine finishing");
+                Entity(WashingMachineStatus).SetOption(WashingMachineState.Finishing);
+            });
 
         Entity(WashingMachineStatus)
             .StateChangesFiltered()
             .Where(s =>
                 GetWashingMachineState() == WashingMachineState.Finishing)
             .NDSameStateFor(new TimeSpan(0, 1, 0))
-            .Subscribe(_ => Entity(WashingMachineStatus).SetOption(WashingMachineState.Clean));
+            .Subscribe(_ =>
+            {
+                LogHistory("Washing machine clean");
+                Entity(WashingMachineStatus).SetOption(WashingMachineState.Clean);
+            });
 
         Entities(WashingMachineDoorContact)
             .StateChangesFiltered()
@@ -60,6 +69,7 @@ public class Laundry : RoomApp
                 GetWashingMachineState() != WashingMachineState.Running)
             .Subscribe(_ =>
             {
+                LogHistory("Washing machine idle");
                 CancelWashingDoneTimer();
                 Entity(WashingMachineStatus).SetOption(WashingMachineState.Idle);
             });
@@ -71,6 +81,8 @@ public class Laundry : RoomApp
                 s.New!.State == WashingMachineState.Clean.ToString("F"))
             .Subscribe(_ =>
             {
+                LogHistory("Washing machine clean notification");
+
                 if (_washingDoneTimer != null)
                     return;
 
@@ -92,7 +104,11 @@ public class Laundry : RoomApp
             });
 
         EventChanges.Where(e => e.Event == "mobile_app_notification_action" && e.Data!.action == "silence_washingdone")
-            .Subscribe(_ => CancelWashingDoneTimer());
+            .Subscribe(_ =>
+            {
+                LogHistory("Washing machine silence notification");
+                CancelWashingDoneTimer();
+            });
 
         base.Initialize();
     }

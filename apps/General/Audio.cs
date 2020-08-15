@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reactive.Linq;
+using daemonapp.Utilities;
 using JetBrains.Annotations;
 using NetDaemon.Common.Reactive;
 
@@ -15,7 +16,11 @@ public class Audio : NetDaemonRxApp
 
         Entity("binary_sensor.bed_occupancy")
             .StateChangesFiltered()
-            .Subscribe(_ => this.SetTTSVolume());
+            .Subscribe(_ =>
+            {
+                LogHelper.Log(this,nameof(Audio), "Settings TTS volume");
+                this.SetTTSVolume();
+            });
 
          base.Initialize();
     }

@@ -10,22 +10,33 @@ public class Study : RoomApp
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(10);
 
     public string? MonitorSwitch => "switch.office_pc_monitors";
-    public string? PcUsage => "binary_sensor.studypc_on";
+    public string? PcUsage => "sensor.study_pc_wattage";
 
     public override void Initialize()
     {
-        Entity(PcUsage!)
-            .StateChangesFiltered()
-            .Where(s => s.Old.State == "off" && s.New.State == "on")
-            .NDSameStateFor(TimeSpan.FromSeconds(3))
-            .Subscribe(_ => PcInUseAction());
-            
+        Entity(PcUsage)
+                .StateChangesFiltered()
+                .Where(s =>
+                    s.Old.State < s.Old.Attribute?.active_threshold &&
+                    s.New.State >= s.New.Attribute?.active_threshold)
+                .NDSameStateFor(TimeSpan.FromSeconds(3))
+                .Subscribe(_ =>
+                {
+                    LogHistory("PC above power threshold");
+                    PcInUseAction();
+                });
 
-        Entity(PcUsage!)
-            .StateChangesFiltered()
-            .Where(s => s.Old.State == "on" && s.New.State == "off")
-            .NDSameStateFor(TimeSpan.FromMinutes(1))
-            .Subscribe(_ => PcNotInUseAction());
+        Entities(PowerSensors)
+                .StateChangesFiltered()
+                .Where(s =>
+                    s.Old.State >= s.Old.Attribute?.active_threshold &&
+                    s.New.State < s.New.Attribute?.active_threshold)
+                .NDSameStateFor(TimeSpan.FromMinutes(1))
+                .Subscribe(_=>
+                {
+                    LogHistory("PC below power threshold");
+                    PcNotInUseAction();
+                });
 
         base.Initialize();
     }

@@ -15,7 +15,11 @@ public class EnsuiteShower : RoomApp
             .StateChangesFiltered()
             .Where(tuple => tuple.Old.State == "off" && tuple.New.State == "on")
             .NDSameStateFor(OccupancyTimeoutObserved)
-            .Subscribe(tuple => Entity(tuple.New.EntityId).TurnOff());
+            .Subscribe(tuple =>
+            {
+                LogHistory($"Turn off ensuite shower fan after {OccupancyTimeoutObserved.TotalMinutes} minutes");
+                Entity(tuple.New.EntityId).TurnOff();
+            });
 
         base.Initialize();
     }

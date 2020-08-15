@@ -22,23 +22,23 @@ public class Kitchen : RoomApp
     {
         SetupDishwasher();
 
-        Entity("binary_sensor.fridge_door_contact")
-            .StateChangesFiltered()
-            .Where(s => s.Old!.State == "off" && s.New.State == "on")
-            .Subscribe(_ =>
-            {
-                if ((State("person.daniel")!.State != "home" ||
-                     State("binary_sensor.media_chair_right_occupancy")!.State == "on") &&
-                    DateTime.Now.Hour > 15 && DateTime.Now.Hour < 20 &&
-                    ((DateTime?)Storage.LastFridgeNotification == null ||
-                     DateTime.Now - (DateTime)Storage.LastFridgeNotification >=
-                     TimeSpan.FromHours(24)))
-                {
-                    this.Notify(new Uri("http://192.168.1.2:8123/local/big_pig_snort.mp3"), 0.4M,
-                        Notifier.AudioNotificationDevice.Kitchen);
-                    Storage.LastFridgeNotification = DateTime.Now;
-                }
-            });
+        //Entity("binary_sensor.fridge_door_contact")
+        //    .StateChangesFiltered()
+        //    .Where(s => s.Old!.State == "off" && s.New.State == "on")
+        //    .Subscribe(_ =>
+        //    {
+        //        if ((State("person.daniel")!.State != "home" ||
+        //             State("binary_sensor.media_chair_right_occupancy")!.State == "on") &&
+        //            DateTime.Now.Hour > 15 && DateTime.Now.Hour < 20 &&
+        //            ((DateTime?)Storage.LastFridgeNotification == null ||
+        //             DateTime.Now - (DateTime)Storage.LastFridgeNotification >=
+        //             TimeSpan.FromHours(24)))
+        //        {
+        //            this.Notify(new Uri("http://192.168.1.2:8123/local/big_pig_snort.mp3"), 0.4M,
+        //                Notifier.AudioNotificationDevice.Kitchen);
+        //            Storage.LastFridgeNotification = DateTime.Now;
+        //        }
+        //    });
 
 
         base.Initialize();
@@ -55,7 +55,11 @@ public class Kitchen : RoomApp
                 return GetDishwasherWattage(s.New!) > 10D &&
                        resetStates.Contains(GetDishwasherState());
             })
-            .Subscribe(_ => Entity(DishwasterStatus).SetOption(DishwasherState.Running));
+            .Subscribe(_ =>
+            {
+                LogHistory("Dishwasher running");
+                Entity(DishwasterStatus).SetOption(DishwasherState.Running);
+            });
 
         Entity(DishwasherPowerSensor)
             .StateChangesFiltered()
@@ -63,7 +67,11 @@ public class Kitchen : RoomApp
                 GetDishwasherWattage(s.New!) < 1D &&
                 GetDishwasherState() == DishwasherState.Running)
             .NDSameStateFor(new TimeSpan(0, 1, 45))
-            .Subscribe(_ => Entity(DishwasterStatus).SetOption(DishwasherState.Clean));
+            .Subscribe(_ =>
+            {
+                LogHistory("Dishwasher clean");
+                Entity(DishwasterStatus).SetOption(DishwasherState.Clean);
+            });
 
         Entity(DishwasherDoor)
             .StateChangesFiltered()
@@ -74,19 +82,27 @@ public class Kitchen : RoomApp
                     GetDishwasherWattage(s.New!) < 1D ||
                     GetDishwasherState() == DishwasherState.Clean)
             )
-            .Subscribe(_ => Entity(DishwasterStatus).SetOption(DishwasherState.Dirty));
+            .Subscribe(_ =>
+            {
+                LogHistory("Dishwasher dirty");
+                Entity(DishwasterStatus).SetOption(DishwasherState.Dirty);
+            });
 
         Entity(DishwasterStatus)
             .StateChangesFiltered()
             .Where(s => s.Old!.State == DishwasherState.Running.ToString("F") &&
                         s.New!.State == DishwasherState.Clean.ToString("F"))
             .Subscribe(_ =>
+            {
+
+                LogHistory("Dishwasher finished notification");
                 this.Notify(
                     "Kitchen",
                     "The dishwasher has finished",
                     Notifier.NotificationCriteria.NotSleeping,
                     Notifier.NotificationCriteria.NotSleeping,
-                    Notifier.TextNotificationDevice.All));
+                    Notifier.TextNotificationDevice.All);
+            });
     }
 
     private static double GetDishwasherWattage(EntityState to)

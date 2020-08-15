@@ -5,6 +5,8 @@ using JetBrains.Annotations;
 [UsedImplicitly]
 public class MasterBedroom : RoomApp
 {
+    protected override bool DebugMode => true;
+
     protected override void TurnEveryThingOff()
     {
         if (!this.IsAnyoneInBed())
@@ -17,11 +19,11 @@ public class MasterBedroom : RoomApp
         }
         else
         {
-             this.TurnEverythingOff(RoomName, excludeEntities: "fan.masterbedroom_fan");
-             this.TurnEverythingOff(nameof(MasterBedroomRobe));
-             this.TurnEverythingOff(nameof(Ensuite));
-             this.TurnEverythingOff(nameof(EnsuiteShower));
-             this.TurnEverythingOff(nameof(Entry));
+            this.TurnEverythingOff(RoomName, excludeEntities: "fan.masterbedroom_fan");
+            this.TurnEverythingOff(nameof(MasterBedroomRobe));
+            this.TurnEverythingOff(nameof(Ensuite));
+            this.TurnEverythingOff(nameof(EnsuiteShower));
+            this.TurnEverythingOff(nameof(Entry));
         }
     }
 
@@ -39,7 +41,7 @@ public class MasterBedroom : RoomApp
             return new Dictionary<string, object>
             {
                 {
-                    "rgb_color",  colours
+                    "rgb_color", colours
                 }
             };
         }
@@ -48,16 +50,16 @@ public class MasterBedroom : RoomApp
     protected override bool IndoorRoom => true;
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(15);
 
-    protected override bool PresenceLightingEnabled
-    {
-        get
-        {
-            var bed = State("binary_sensor.bed_occupancy")!;
-            var bedState = bed.State;
+    protected override bool AutomatedLightsOn => AreAutomatedLightsEnabled();
+    protected override bool AutomatedLightsOff => AreAutomatedLightsEnabled();
 
-            // only control lighting when no one in bed and has been that way for 10 mins
-            return base.PresenceLightingEnabled && bedState != null && bedState != "on";
-            //&& DateTime.Now - bed.LastChanged > TimeSpan.FromMinutes(10);
-        }
+    private bool AreAutomatedLightsEnabled()
+    {
+        var bed = State("binary_sensor.bed_occupancy")!;
+        var bedState = bed.State;
+
+        // only control lighting when no one in bed and has been that way for 10 mins
+        return base.AutomatedLightsOn && bedState != null && bedState != "on";
+        //&& DateTime.Now - bed.LastChanged > TimeSpan.FromMinutes(10);
     }
 }

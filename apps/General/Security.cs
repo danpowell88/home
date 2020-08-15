@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
+using daemonapp.Utilities;
 using EnumsNET;
 using NetDaemon.Common.Reactive;
 
@@ -19,6 +20,8 @@ public class Security : NetDaemonRxApp
                 new List<string> {"open", "on"}.Contains(s.New.State))
             .Subscribe(s =>
             {
+                LogHelper.Log(this, nameof(Security), "Security check for open entry ways");
+
                 this.ExecuteIfTrueNowAndAfter(() => State("input_boolean.left_home")!.State == true,
                     new TimeSpan(0, 2, 0), () =>
                         this.Notify(

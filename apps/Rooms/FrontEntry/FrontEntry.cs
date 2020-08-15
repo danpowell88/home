@@ -17,6 +17,8 @@ public class FrontEntry : RoomApp
             .Where(e => e.Old.State == "off" && e.New.State == "on")
             .Subscribe(e =>
             {
+                LogHistory($"Ring doorbell");
+
                 this.Notify(
                     "Security",
                     "The doorbell has been rung",
@@ -34,10 +36,18 @@ public class FrontEntry : RoomApp
                         s.New!.Attribute!.rising == false &&
                         DateTime.Now.Hour < 21 &&
                         !this.IsAnyoneSleeping())
-            .Subscribe(s => Entity("light.front_pillars").TurnOn());
+            .Subscribe(s =>
+            {
+                LogHistory($"Turn on front pillars");
+                Entity("light.front_pillars").TurnOn();
+            });
 
 
-        RunDaily("21:00:00", () => Entity("light.front_pillars").TurnOff());
+        RunDaily("21:00:00", () =>
+        {
+            LogHistory($"Turn off front pillars");
+            Entity("light.front_pillars").TurnOff();
+        });
 
         base.Initialize();
     }
