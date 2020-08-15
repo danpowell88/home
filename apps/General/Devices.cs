@@ -29,10 +29,13 @@ public class Devices : NetDaemonRxApp
                         e.Attribute.unit_of_measurement == "%" &&
                         e.Attribute.alert != false)
                     {
-                        var parse = long.TryParse(e.State.ToString(), out long value);
+                        if (e.State != null)
+                        {
+                            var parse = long.TryParse(e.State.ToString(), out long value);
 
-                        if (parse)
-                            return value < 25;
+                            if (parse)
+                                return value < 25;
+                        }
                     }
 
                     return false;
