@@ -10,7 +10,7 @@ public class Study : RoomApp
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(10);
 
     public string MonitorSwitch => "switch.office_pc_monitors";
-    public string PcUsage => "sensor.study_pc_wattage";
+    public string PcUsage => "sensor.office_pc_power";
 
     public override void Initialize()
     {

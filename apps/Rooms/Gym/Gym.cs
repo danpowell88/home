@@ -6,7 +6,7 @@ using NetDaemon.Common.Reactive;
 [UsedImplicitly]
 public class Gym : RoomApp
 {
-    private const string Training = "sensor.gym_trainer_wattage";
+    private const string Training = "sensor.trainer_wattage";
     private const string Climate = "sensor.gym_temperature";
     private const string BikeFanSwitch = "switch.gym_bike_fan";
     private const string WeightFanSwitch = "switch.gym_weights_fan";
