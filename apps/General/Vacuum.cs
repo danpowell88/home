@@ -91,7 +91,7 @@ public class Vacuum : NetDaemonRxApp
                 {
                     this.Notify(
                         "Vacuum",
-                        "Would you like s.New.State == vacuum the house?",
+                        "Would you like to vacuum the house?",
                         Notifier.NotificationCriteria.Always,
                         Notifier.NotificationCriteria.None,
                         new[]
@@ -112,7 +112,7 @@ public class Vacuum : NetDaemonRxApp
             {
                 if (State("vacuum.xiaomi_vacuum_cleaner")!.State != "docked")
                 {
-                    CallService("vacuum", "return_s.New.State ==_base", new
+                    CallService("vacuum", "return_to_base", new
                     {
                         entity_id = "vacuum.xiaomi_vacuum_cleaner"
                     });
@@ -126,7 +126,7 @@ public class Vacuum : NetDaemonRxApp
             {
                 if (s.New!.Attribute!.cleaned_area > 50)
                 {
-                    Entity("input_boolean.vacuumed_s.New.State ==day").TurnOn();
+                    Entity("input_boolean.vacuumed_today").TurnOn();
                 }
             });
 
@@ -138,10 +138,10 @@ public class Vacuum : NetDaemonRxApp
             .Subscribe(_ => CleanRoom("tiles"));
 
         EventChanges.Where(e => e.Event == "mobile_app_notification_action" && e.Data!.action == "vacuum_silence")
-            .Subscribe(_ =>   Entity("input_boolean.vacuumed_s.New.State ==day").TurnOn());
+            .Subscribe(_ =>   Entity("input_boolean.vacuumed_today").TurnOn());
 
 
-        RunDaily("00:00:00", () => Entity("input_boolean.vacuumed_s.New.State ==day").TurnOff());
+        RunDaily("00:00:00", () => Entity("input_boolean.vacuumed_today").TurnOff());
 
         base.Initialize();
     }

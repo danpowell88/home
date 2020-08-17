@@ -329,7 +329,7 @@ public abstract class RoomApp : NetDaemonRxApp
 
     public void ToggleLights(bool on)
     {
-        LogHistory($"Turning lights {(on ? "on" : "off")}");
+        
         DebugLog("Toggle lights: {on}", on);
 
         var primaryLights = Entities(PrimaryLights);
@@ -338,12 +338,13 @@ public abstract class RoomApp : NetDaemonRxApp
         {
             if (!this.AllStatesAre(PrimaryLights, "on") && AutomatedLightsOn)
             {
+                LogHistory($"Turning lights on");
                 primaryLights.TurnOn();
             }
 
             if (!this.AllStatesAre(SecondaryLights, "on") && SecondaryLightingEnabled)
             {
-                secondaryLights.TurnOn();
+                LogHistory($"Turning secondary lights on");
 
                 if (SecondaryLightingAttributes != null)
                 {
@@ -359,6 +360,7 @@ public abstract class RoomApp : NetDaemonRxApp
         {
             if (!this.AllStatesAre(PrimaryLights, "off") && AutomatedLightsOff)
             {
+                LogHistory($"Turning lights off");
                 primaryLights.TurnOff();
                 secondaryLights.TurnOff();
             }
