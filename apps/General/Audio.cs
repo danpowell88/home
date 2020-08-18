@@ -11,14 +11,16 @@ public class Audio : NetDaemonRxApp
     {
         Entity("group.family")
             .StateChangesFiltered()
+            .Synchronize()
             .Where(s => s.Old.State == "not_home" && s.New.State == "home")
             .Subscribe(_ => this.SetTTSVolume());
 
         Entity("binary_sensor.bed_occupancy")
             .StateChangesFiltered()
+            .Synchronize()
             .Subscribe(_ =>
             {
-                LogHelper.Log(this,nameof(Audio), "Settings TTS volume");
+                LogHelper.Log(this,nameof(Audio), "Settings TTS volume due to bed occupancy");
                 this.SetTTSVolume();
             });
 

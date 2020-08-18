@@ -99,6 +99,7 @@ public abstract class RoomApp : NetDaemonRxApp
 
             // doors/windows require timer but we exclude them from being considered for occupancy
             var entryPointsOpen = Entities(EntryPoints).StateChangesFiltered()
+                .Synchronize()
                 .Where(s => s.Old.State == "off" && s.New.State == "on")
                 .Subscribe(s => StartTimer());
 
@@ -148,7 +149,9 @@ public abstract class RoomApp : NetDaemonRxApp
                 lightsOn,
                 powerSensorChanges,
                 workstationChanges,
-                mediaPlayerChanges).Subscribe(tuple =>
+                mediaPlayerChanges)
+                .Synchronize()
+                .Subscribe(tuple =>
             {
                 DebugLog("State change - {entity} - {from} - {to}", tuple.Old.EntityId, tuple.Old.State,
                     tuple.New.State);
@@ -159,7 +162,9 @@ public abstract class RoomApp : NetDaemonRxApp
                 
             });
 
-            EventChanges.Where(e => (e.Event == "timer.started" || e.Event == "timer.finished") && e.Data!.entity_id == TimerEntityName)
+            EventChanges
+                .Synchronize()
+                .Where(e => (e.Event == "timer.started" || e.Event == "timer.finished") && e.Data!.entity_id == TimerEntityName)
                 .Subscribe(s =>
                 {
                     var occupancy = AnyOccupanyMarkers();
@@ -176,7 +181,7 @@ public abstract class RoomApp : NetDaemonRxApp
                     }
                 });
 
-            roomPresence.StateChangesFiltered().Subscribe(s =>
+            roomPresence.StateChangesFiltered().Synchronize.Subscribe(s =>
             {
                 if (s.New.State == "on")
                     OccupancyOn();
@@ -185,6 +190,7 @@ public abstract class RoomApp : NetDaemonRxApp
             });
 
             Entities(MasterOffSwitches).StateChangesFiltered()
+                .Synchronize()
                 .Where(s => s.New.State == "single")
                 .Subscribe(_ =>
                 {
@@ -383,7 +389,13 @@ public static class EntityStateExtensions
 {
     public static IObservable<(EntityState Old, EntityState New)> StateChangesFiltered(this RxEntity entity)
     {
-        return entity.StateChanges.Where(s => s.New.State != null && s.Old.State != s.New.State);
+        // not from unavailable to something
+        // not from something to unavailable
+        // not to and from the same status
+        return entity.StateChanges.Where(s => 
+        s.Old.State != null && 
+        s.New.State != null && // may need to check for "unknown"
+        s.Old.State != s.New.State);
     }
 }
 

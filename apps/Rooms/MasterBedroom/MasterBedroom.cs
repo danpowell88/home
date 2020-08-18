@@ -59,7 +59,7 @@ public class MasterBedroom : RoomApp
         var bedState = bed.State;
 
         // only control lighting when no one in bed and has been that way for 10 mins
-        return base.AutomatedLightsOn && bedState != null && bedState != "on";
+        return base.AutomatedLightsOn && bedState != null && bedState == "off";
         //&& DateTime.Now - bed.LastChanged > TimeSpan.FromMinutes(10);
     }
 }
