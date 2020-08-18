@@ -181,7 +181,7 @@ public abstract class RoomApp : NetDaemonRxApp
                     }
                 });
 
-            roomPresence.StateChangesFiltered().Synchronize.Subscribe(s =>
+            roomPresence.StateChangesFiltered().Synchronize().Subscribe(s =>
             {
                 if (s.New.State == "on")
                     OccupancyOn();

@@ -20,6 +20,7 @@ public class Settings : NetDaemonRxApp
 
         Entity("sensor.bed_occupancy_count")
             .StateChangesFiltered()
+            .Synchronize()
             .Subscribe(_ =>
             {
                 if (this.IsEveryoneInBed())
@@ -45,6 +46,7 @@ public class Settings : NetDaemonRxApp
 
         Entities(e => e.EntityId.StartsWith("light."))
             .StateChangesFiltered()
+            .Synchronize()
             .Subscribe(_ =>
             {
                 if (States.Any(e => e.EntityId.StartsWith("light.") && e.State == "on"))
