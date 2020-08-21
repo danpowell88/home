@@ -24,6 +24,7 @@ public class Presence : NetDaemonRxApp
             .Subscribe(_ =>
             {
                 LogHelper.Log(this, nameof(Presence), "Everyone left home");
+                Entities(e => e.EntityId.StartsWith("input_boolean.presence")).TurnOff();
                 this.TurnEverythingOff();
             });
 

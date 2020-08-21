@@ -9,7 +9,7 @@ public class Study : RoomApp
     protected override bool IndoorRoom => true;
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(10);
 
-    public string MonitorSwitch => "switch.office_pc_monitors";
+    public string MonitorSwitch => "switch.pc_monitors_plug";
     public string PcUsage => "sensor.office_pc_power";
 
     public override void Initialize()

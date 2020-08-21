@@ -84,7 +84,7 @@ public abstract class RoomApp : NetDaemonRxApp
 
             LogDiscoveredEntities();
             DebugLog("Occupancy Timeout: {timeout} minute(s)", OccupancyTimeoutObserved.TotalMinutes);
-            
+
             var timer = Entity(TimerEntityName);
             var timerState = State(TimerEntityName);
             if (timerState == null)
@@ -156,10 +156,10 @@ public abstract class RoomApp : NetDaemonRxApp
                 DebugLog("State change - {entity} - {from} - {to}", tuple.Old.EntityId, tuple.Old.State,
                     tuple.New.State);
 
-                if(AnyOccupanyMarkers() || this.AnyStatesAre(Lights, "on"))
+                if (AnyOccupanyMarkers() || this.AnyStatesAre(Lights, "on"))
                     StartTimer();
 
-                
+
             });
 
             EventChanges
@@ -168,20 +168,36 @@ public abstract class RoomApp : NetDaemonRxApp
                 .Subscribe(s =>
                 {
                     var occupancy = AnyOccupanyMarkers();
-                    
-                    if (s.Event =="timer.started" && occupancy)
+
+                    if (s.Event == "timer.started" && occupancy)
                     {
                         DebugLog("Room presence set on");
-                        roomPresence.TurnOn();
+                        if (State(RoomPresenceEntityName)!.State != "on")
+                        {
+                            roomPresence.TurnOn();
+                        }
+                        else
+                        {
+                            OccupancyOn();
+                        }
                     }
                     if (s.Event == "timer.finished" && !occupancy)
                     {
                         DebugLog("Room presence set off");
                         roomPresence.TurnOff();
+
+                        if (State(RoomPresenceEntityName)!.State != "off")
+                        {
+                            roomPresence.TurnOff();
+                        }
+                        else
+                        {
+                            OccupancyOff();
+                        }
                     }
                 });
 
-            roomPresence.StateChangesFiltered().Synchronize().Subscribe(s =>
+            roomPresence.StateChanges.Synchronize().Subscribe(s =>
             {
                 if (s.New.State == "on")
                     OccupancyOn();
@@ -262,7 +278,7 @@ public abstract class RoomApp : NetDaemonRxApp
                 ps.Attribute!.active_threshold, ps.State >= ps.Attribute.active_threshold);
         }
 
-        DebugLog("Occupancy timer is running: {timer}",State(TimerEntityName)?.State);
+        DebugLog("Occupancy timer is running: {timer}", State(TimerEntityName)?.State);
         DebugLog("-----------------------");
 
         var occupancy = this.AnyStatesAre(AllOccupancySensors, "on", "open");
@@ -272,11 +288,11 @@ public abstract class RoomApp : NetDaemonRxApp
         var power = this.AnyStatesAre(PowerSensors, p => p.State >= p.Attribute!.active_threshold);
         var timer = State(TimerEntityName)!.State != "idle";
 
-        return occupancy || 
+        return occupancy ||
                //entry || 
-               media || 
-               workstation || 
-               power || 
+               media ||
+               workstation ||
+               power ||
                timer;
     }
 
@@ -299,8 +315,8 @@ public abstract class RoomApp : NetDaemonRxApp
     {
         DebugLog("Starting timer");
 
-        CallService("timer", "cancel", new {entity_id = TimerEntityName});
-        CallService("timer", "start", new {entity_id = TimerEntityName, duration = OccupancyTimeoutObserved.ToString()});
+        CallService("timer", "cancel", new { entity_id = TimerEntityName });
+        CallService("timer", "start", new { entity_id = TimerEntityName, duration = OccupancyTimeoutObserved.ToString() });
     }
 
     public void StopTimer()
@@ -335,7 +351,7 @@ public abstract class RoomApp : NetDaemonRxApp
 
     public void ToggleLights(bool on)
     {
-        
+
         DebugLog("Toggle lights: {on}", on);
 
         var primaryLights = Entities(PrimaryLights);
@@ -381,7 +397,7 @@ public abstract class RoomApp : NetDaemonRxApp
 
     public void LogHistory(string automation)
     {
-        LogHelper.Log(this,RoomName.Humanize(),automation);
+        LogHelper.Log(this, RoomName.Humanize(), automation);
     }
 }
 
@@ -392,8 +408,8 @@ public static class EntityStateExtensions
         // not from unavailable to something
         // not from something to unavailable
         // not to and from the same status
-        return entity.StateChanges.Where(s => 
-        s.Old.State != null && 
+        return entity.StateChanges.Where(s =>
+        s.Old.State != null &&
         s.New.State != null && // may need to check for "unknown"
         s.Old.State != s.New.State);
     }
