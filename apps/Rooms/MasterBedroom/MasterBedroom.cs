@@ -5,8 +5,6 @@ using JetBrains.Annotations;
 [UsedImplicitly]
 public class MasterBedroom : RoomApp
 {
-    protected override bool DebugMode => true;
-
     protected override void TurnEveryThingOff()
     {
         if (!this.IsAnyoneInBed())
