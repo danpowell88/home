@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+
+    <IsPackable>false</IsPackable>
+
+    <AssemblyName>NetDaemon.Daemon.Tests</AssemblyName>
+
+    <RootNamespace>NetDaemon.Daemon.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JoySoftware.NetDaemon.App" Version="0.15.0-beta" />
+    <PackageReference Include="JoySoftware.NetDaemon.Daemon" Version="0.15.0-beta" />
+    <PackageReference Include="JoySoftware.NetDaemon.DaemonRunner" Version="0.15.0-beta" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
+    <PackageReference Include="Moq" Version="4.14.5" />
+    <PackageReference Include="xunit" Version="2.4.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
+    <PackageReference Include="coverlet.collector" Version="1.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Daemon\daemonapp.csproj" />
+  </ItemGroup>
+
+</Project>

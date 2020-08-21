@@ -32,7 +32,7 @@ public abstract class RoomApp : NetDaemonRxApp
     protected virtual Dictionary<string, object>? SecondaryLightingAttributes => null;
     protected virtual string RoomName => GetType().Name;
 
-    protected TimeSpan OccupancyTimeoutObserved => DebugMode ? OccupancyTimeoutTest : OccupancyTimeout;
+    public TimeSpan OccupancyTimeoutObserved => DebugMode ? OccupancyTimeoutTest : OccupancyTimeout;
 
     private TimeSpan OccupancyTimeoutTest => TimeSpan.FromMinutes(1);
 
@@ -61,8 +61,8 @@ public abstract class RoomApp : NetDaemonRxApp
     protected virtual TimeSpan MediaPlayerDebounce => TimeSpan.FromMinutes(1);
     protected virtual TimeSpan WorkstationOffDebounce => TimeSpan.FromMinutes(1);
 
-    private string RoomPresenceEntityName => $"input_boolean.presence_{RoomName.ToLower()}";
-    private string TimerEntityName => $"timer.occupancy_{RoomName.ToLower()}";
+    public string RoomPresenceEntityName => $"input_boolean.presence_{RoomName.ToLower()}";
+    public string TimerEntityName => $"timer.occupancy_{RoomName.ToLower()}";
 
     protected Func<IEntityProperties, bool> MasterOffSwitches => e => IsEntityMatch(e, EntityType.Sensor) && e.Attribute!.switch_type == SwitchType.MasterOff.AsString(EnumFormat.DisplayName, EnumFormat.Name)!.ToLower();
     public override void Initialize()
