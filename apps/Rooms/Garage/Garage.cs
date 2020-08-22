@@ -1,5 +1,6 @@
 using System;
 using System.Reactive.Linq;
+using daemonapp.Utilities;
 using JetBrains.Annotations;
 using NetDaemon.Common.Reactive;
 
@@ -16,7 +17,7 @@ public class Garage : RoomApp
         Entity("cover.garage_door")
             .StateChangesFiltered()
             .Where(s => s.Old.State == "closed" && s.New.State == "open")
-            .Subscribe(_ => Entities(Lights).TurnOn());
+            .Subscribe(_ => Entities(EntityLocator.Lights(RoomName)).TurnOn());
 
         Entity("cover.garage_door")
             .StateChangesFiltered()

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
+using daemonapp.Utilities;
 using NetDaemon.Common.Reactive;
 
 public class Vacuum : NetDaemonRxApp

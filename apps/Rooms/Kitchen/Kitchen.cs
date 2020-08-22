@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reactive.Linq;
+using daemonapp.Utilities;
 using EnumsNET;
 using JetBrains.Annotations;
 using NetDaemon.Common;

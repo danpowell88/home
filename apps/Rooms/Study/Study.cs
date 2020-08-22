@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reactive.Linq;
+using daemonapp.Utilities;
 using JetBrains.Annotations;
 using NetDaemon.Common.Reactive;
 
@@ -26,7 +27,7 @@ public class Study : RoomApp
                     PcInUseAction();
                 });
 
-        Entities(PowerSensors)
+        Entities(EntityLocator.PowerSensors(RoomName))
                 .StateChangesFiltered()
                 .Where(s =>
                     s.Old.State >= s.Old.Attribute?.active_threshold &&

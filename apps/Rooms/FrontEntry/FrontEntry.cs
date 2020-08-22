@@ -1,5 +1,6 @@
 using System;
 using System.Reactive.Linq;
+using daemonapp.Utilities;
 using JetBrains.Annotations;
 
 [UsedImplicitly]

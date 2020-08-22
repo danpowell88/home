@@ -1,4 +1,5 @@
 using System;
+using daemonapp.Utilities;
 using JetBrains.Annotations;
 
 [UsedImplicitly]

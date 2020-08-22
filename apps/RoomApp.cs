@@ -13,58 +13,34 @@ using NetDaemon.Common.Reactive;
 
 public abstract class RoomApp : NetDaemonRxApp
 {
-    // ReSharper disable once RedundantLogicalConditionalExpressionOperand
-    protected virtual bool DebugMode => SingleRoomModeName == RoomName || false;
+    protected virtual string RoomName => GetType().Name;
 
     private readonly string? SingleRoomModeName = "";
 
+    // ReSharper disable once RedundantLogicalConditionalExpressionOperand
+    protected virtual bool DebugMode => SingleRoomModeName == RoomName || false;
+
     protected abstract bool IndoorRoom { get; }
-    protected virtual bool AutomatedLightsOn => IndoorRoom ?
-        State("input_boolean.indoor_motion_enabled")?.State == "on" :
-        State("input_boolean.outdoor_motion_enabled")?.State == "on";
+
+    protected virtual bool AutomatedLightsOn => IndoorRoom
+        ? State("input_boolean.indoor_motion_enabled")?.State == "on"
+        : State("input_boolean.outdoor_motion_enabled")?.State == "on";
 
     protected virtual bool AutomatedLightsOff => true;
 
     protected virtual bool AutoDiscoverDevices => true;
 
     protected virtual bool SecondaryLightingEnabled => false;
-
     protected virtual Dictionary<string, object>? SecondaryLightingAttributes => null;
-    protected virtual string RoomName => GetType().Name;
 
     protected TimeSpan OccupancyTimeoutObserved => DebugMode ? OccupancyTimeoutTest : OccupancyTimeout;
-
     private TimeSpan OccupancyTimeoutTest => TimeSpan.FromMinutes(1);
-
     protected virtual TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(3);
 
-    public Func<IEntityProperties, bool> MotionSensors => e => IsEntityMatch(e, EntityType.BinarySensor, DeviceClass.Motion);
-    public Func<IEntityProperties, bool> OccupancySensors => e => IsEntityMatch(e, EntityType.BinarySensor, DeviceClass.Occupancy);
-    public Func<IEntityProperties, bool> PowerSensors => e => IsEntityMatch(e, EntityType.Sensor, DeviceClass.Power) && e.Attribute!.active_threshold != null;
-    public Func<IEntityProperties, bool> MediaPlayerDevices => e => IsEntityMatch(e, EntityType.MediaPlayer);
-    public Func<IEntityProperties, bool> PrimaryLights =>
-        e => IsEntityMatch(e, EntityType.Light) && (string?)e.Attribute!.type != "secondary";
-
-    public Func<IEntityProperties, bool> SecondaryLights =>
-        e => IsEntityMatch(e, EntityType.Light) && (string?)e.Attribute!.type == "secondary";
-
-    public Func<IEntityProperties, bool> Lights => e => PrimaryLights(e) || SecondaryLights(e);
-
-    public Func<IEntityProperties, bool> Workstations => e => IsEntityMatch(e, EntityType.WorkStation);
-    public Func<IEntityProperties, bool> EntryPoints =>
-        e => IsEntityMatch(e, EntityType.BinarySensor, DeviceClass.Door, DeviceClass.Window) ||
-             IsEntityMatch(e, EntityType.Cover, DeviceClass.Garage);
-    protected virtual Func<IEntityProperties, bool> AllOccupancySensors => e => MotionSensors(e) || OccupancySensors(e);
-
-    protected virtual TimeSpan PowerSensorOffDebounce => TimeSpan.FromMinutes(5);
-    protected virtual TimeSpan PowerSensorOnDebounce => TimeSpan.FromSeconds(30);
+    protected virtual TimeSpan PowerSensorDebounce => TimeSpan.FromSeconds(30);
     protected virtual TimeSpan MediaPlayerDebounce => TimeSpan.FromMinutes(1);
-    protected virtual TimeSpan WorkstationOffDebounce => TimeSpan.FromMinutes(1);
+    protected virtual TimeSpan WorkstationDebounce => TimeSpan.FromMinutes(1);
 
-    private string RoomPresenceEntityName => $"input_boolean.presence_{RoomName.ToLower()}";
-    private string TimerEntityName => $"timer.occupancy_{RoomName.ToLower()}";
-
-    protected Func<IEntityProperties, bool> MasterOffSwitches => e => IsEntityMatch(e, EntityType.Sensor) && e.Attribute!.switch_type == SwitchType.MasterOff.AsString(EnumFormat.DisplayName, EnumFormat.Name)!.ToLower();
     public override void Initialize()
     {
         if (!string.IsNullOrWhiteSpace(SingleRoomModeName) && RoomName != SingleRoomModeName)
@@ -77,156 +53,231 @@ public abstract class RoomApp : NetDaemonRxApp
 
         if (AutoDiscoverDevices)
         {
-            var roomPresence = Entity(RoomPresenceEntityName);
-            var roomPresenceState = State(RoomPresenceEntityName);
-            if (roomPresenceState == null)
-                throw new Exception("Could not find room presence input boolean");
+            var roomPresence = GetRoomPresenceAndValidateRequiredEntities();
 
             LogDiscoveredEntities();
             DebugLog("Occupancy Timeout: {timeout} minute(s)", OccupancyTimeoutObserved.TotalMinutes);
 
-            var timer = Entity(TimerEntityName);
-            var timerState = State(TimerEntityName);
-            if (timerState == null)
-                throw new Exception("Could not find room timer");
-
-            var occupancySensorChanges = Entities(OccupancySensors).StateChangesFiltered();
-
-            var motionSensorChanges = Entities(MotionSensors).StateChangesFiltered();
-
-            var entryPointsChanges = Entities(EntryPoints).StateChangesFiltered();
-
-
-            // doors/windows require timer but we exclude them from being considered for occupancy
-            var entryPointsOpen = Entities(EntryPoints).StateChangesFiltered()
-                .Synchronize()
-                .Where(s => s.Old.State == "off" && s.New.State == "on")
-                .Subscribe(s => StartTimer());
-
-            var lightsOn = Entities(Lights).StateChangesFiltered()
-                .Where(s => s.Old.State == "off" && s.New.State == "on");
-
-            var powerSensorOff =
-                Entities(PowerSensors)
-                    .StateChangesFiltered()
-                    .Where(s =>
-                        s.Old.State >= s.Old.Attribute?.active_threshold &&
-                        s.New.State < s.New.Attribute?.active_threshold)
-                    .NDSameStateFor(PowerSensorOffDebounce);
-
-            var powerSensorOn =
-                Entities(PowerSensors)
-                    .StateChangesFiltered()
-                    .Where(s =>
-                        s.Old.State < s.Old.Attribute?.active_threshold &&
-                        s.New.State >= s.New.Attribute?.active_threshold)
-                    .NDSameStateFor(PowerSensorOnDebounce);
-
-            var powerSensorChanges = powerSensorOff.Merge(powerSensorOn);
-
-            var workstationOff =
-                Entities(Workstations)
-                    .StateChangesFiltered()
-                    .Where(s => s.Old.State == "on" && s.New.State == "off")
-                    .NDSameStateFor(WorkstationOffDebounce);
-
-            var workStationOn =
-                Entities(Workstations)
-                    .StateChangesFiltered()
-                    .Where(s => s.Old.State == "off" && s.New.State == "on");
-
-            var mediaPlayerChanges =
-                Entities(MediaPlayerDevices)
-                    .StateChangesFiltered()
-                    .NDSameStateFor(MediaPlayerDebounce);
-
-            var workstationChanges = workStationOn.Merge(workstationOff);
-
-            Observable.Merge(
-                motionSensorChanges,
-                entryPointsChanges,
-                occupancySensorChanges,
-                lightsOn,
-                powerSensorChanges,
-                workstationChanges,
-                mediaPlayerChanges)
-                .Synchronize()
-                .Subscribe(tuple =>
-            {
-                DebugLog("State change - {entity} - {from} - {to}", tuple.Old.EntityId, tuple.Old.State,
-                    tuple.New.State);
-
-                if (AnyOccupanyMarkers() || this.AnyStatesAre(Lights, "on"))
-                    StartTimer();
-
-
-            });
-
-            EventChanges
-                .Synchronize()
-                .Where(e => (e.Event == "timer.started" || e.Event == "timer.finished") && e.Data!.entity_id == TimerEntityName)
-                .Subscribe(s =>
-                {
-                    var occupancy = AnyOccupanyMarkers();
-
-                    if (s.Event == "timer.started" && occupancy)
-                    {
-                        DebugLog("Room presence set on");
-                        if (State(RoomPresenceEntityName)!.State != "on")
-                        {
-                            roomPresence.TurnOn();
-                        }
-                        else
-                        {
-                            OccupancyOn();
-                        }
-                    }
-                    if (s.Event == "timer.finished" && !occupancy)
-                    {
-                        DebugLog("Room presence set off");
-                        roomPresence.TurnOff();
-
-                        if (State(RoomPresenceEntityName)!.State != "off")
-                        {
-                            roomPresence.TurnOff();
-                        }
-                        else
-                        {
-                            OccupancyOff();
-                        }
-                    }
-                });
-
-            roomPresence.StateChanges.Synchronize().Subscribe(s =>
-            {
-                if (s.New.State == "on")
-                    OccupancyOn();
-                else
-                    OccupancyOff();
-            });
-
-            Entities(MasterOffSwitches).StateChangesFiltered()
-                .Synchronize()
-                .Where(s => s.New.State == "single")
-                .Subscribe(_ =>
-                {
-                    LogHistory("Turn everything off");
-                    TurnEveryThingOff();
-                });
-
-            if (this.AllStatesAre(Lights, "off"))
-            {
-                StopTimer();
-                roomPresence.TurnOff();
-            }
-
-            if (AnyOccupanyMarkers() || this.AnyStatesAre(Lights, "on"))
-                StartTimer();
+            // lights and doors dont indicate occupancy themselves but should start a timeout
+            WireUpNonOccupancyMarkers();
+            WireUpOccupancyMarkers(roomPresence);
+            SetupGenericAutomations();
+            ReInitaliseRoomState(roomPresence);
         }
         else
         {
             Log(LogLevel.Warning, "{Room} auto discovery is disabled", RoomName);
         }
+    }
+
+    private void WireUpOccupancyMarkers(RxEntity roomPresence)
+    {
+        var occupancySensors = Entities(EntityLocator.OccupancySensors(RoomName)).StateChangesFiltered();
+        var powerSensors = GetPowerSensors();
+        var workstations = GetWorkstations();
+        var mediaPlayers = GetMediaPlayers();
+
+        var timerChanges = GetTimerChanges();
+
+        Observable
+            .Merge(
+                occupancySensors,
+                powerSensors,
+                workstations,
+                mediaPlayers,
+                timerChanges)
+            .Synchronize()
+            .Subscribe(s =>
+            {
+                DebugLog("State change - {entity} - {from} - {to}", s.Old.EntityId, s.Old.State, s.New.State);
+
+                if (AnyOccupanyMarkers())
+                {
+                    DebugLog("Room presence set on");
+                    roomPresence.TurnOn();
+                }
+                else
+                {
+                    DebugLog("Room presence set off");
+                    roomPresence.TurnOff();
+                }
+            });
+
+        roomPresence.StateChanges.Synchronize().Subscribe(s =>
+        {
+            if (s.New.State == "on")
+                OccupancyOn();
+            else
+                OccupancyOff();
+        });
+    }
+
+    private void WireUpNonOccupancyMarkers()
+    {
+        bool OffToOn((EntityState Old, EntityState New) s)
+        {
+            return s.Old.State == "off" && s.New.State == "on";
+        }
+
+        bool OnToOff((EntityState Old, EntityState New) s)
+        {
+            return s.Old.State == "on" && s.New.State == "off";
+        }
+
+        // When motion is detected or light is turned on start timer and toggle lights on (adhering to automated lighting rules) 
+        Observable.Merge(
+                Entities(EntityLocator.MotionSensors(RoomName)).StateChangesFiltered().Where(OffToOn),
+                Entities(EntityLocator.Lights(RoomName)).StateChangesFiltered().Where(OffToOn),
+                Entities(EntityLocator.EntryPoints(RoomName)).StateChangesFiltered()) // dont know if you are entering or leaving (so we'll just trigger the lights and timer)
+            .Synchronize()
+            .Subscribe(s =>
+            {
+                StartTimer();
+                ToggleLights(true);
+            });
+
+        // handles the case where someone manually switches the lights off (not by an automation, ie. by hand or HA GUI)
+        // also when door is closed 
+        Entities(EntityLocator.Lights(RoomName)).StateChangesFiltered().Where(OnToOff)
+            .Synchronize()
+            .Subscribe(s => { StopTimer(); });
+    }
+
+    private IObservable<(EntityState Old, EntityState New)> GetTimerChanges()
+    {
+        return EventChanges
+            .Synchronize()
+            .Where(e => (e.Event == "timer.finished" || e.Event == "timer.started") && e.Data!.entity_id == EntityLocator.TimerEntityName(RoomName))
+            .Select<RxEvent, (EntityState Old, EntityState New)>(e => (
+                new EntityState {EntityId = e.Data!.entity_id, State = e.Event == "timer.finished" ? "on" : "off"},
+                new EntityState { EntityId = e.Data!.entity_id, State = e.Event == "timer.finished" ? "off" : "on" }));
+    }
+
+    private void SetupGenericAutomations()
+    {
+        Entities(EntityLocator.MasterOffSwitches(RoomName)).StateChangesFiltered()
+            .Synchronize()
+            .Where(s => s.New.State == "single")
+            .Subscribe(_ =>
+            {
+                LogHistory("Turn everything off");
+                TurnEveryThingOff();
+            });
+    }
+
+    private void ReInitaliseRoomState(RxEntity roomPresence)
+    {
+        if (this.AllStatesAre(EntityLocator.Lights(RoomName), "off"))
+        {
+            StopTimer();
+            roomPresence.TurnOff();
+        }
+
+        if (AnyOccupanyMarkers() || this.AnyStatesAre(EntityLocator.Lights(RoomName), "on"))
+            StartTimer();
+    }
+
+    private RxEntity GetRoomPresenceAndValidateRequiredEntities()
+    {
+        var roomPresence = Entity(EntityLocator.RoomPresenceEntityName(RoomName));
+        var roomPresenceState = State(EntityLocator.RoomPresenceEntityName(RoomName));
+        if (roomPresenceState == null)
+            throw new Exception("Could not find room presence input boolean");
+
+        var timerState = State(EntityLocator.TimerEntityName(RoomName));
+        if (timerState == null)
+            throw new Exception("Could not find room timer");
+        return roomPresence;
+    }
+
+    private IObservable<(EntityState Old, EntityState New)> GetMediaPlayers()
+    {
+        var mediaPlayerEntityIds = States.Where(EntityLocator.MediaPlayerDevices(RoomName)).Select(s => s.EntityId);
+        var mediaPlayerSensorsList = new List<IObservable<(EntityState Old, EntityState New)>>();
+
+        foreach (var entityId in mediaPlayerEntityIds)
+        {
+            mediaPlayerSensorsList.Add(
+                Entity(entityId)
+                    .StateChangesFiltered()
+                    .Select<(EntityState Old, EntityState New),
+                        (EntityState Old, EntityState New)>
+                    (e => (
+                        new EntityState
+                        {
+                            EntityId = e.Old.EntityId,
+                            State = e.Old.State == "playing" ? "on" : "off"
+                        },
+                        new EntityState
+                        {
+                            EntityId = e.New.EntityId,
+                            State = e.New.State == "playing" ? "on" : "off"
+                        }))
+                    .NDSameStateFor(MediaPlayerDebounce));
+        }
+
+        var mediaPlayers = mediaPlayerSensorsList.Merge();
+        return mediaPlayers;
+    }
+
+    private IObservable<(EntityState Old, EntityState New)> GetWorkstations()
+    {
+        var workstationEntityIds = States.Where(EntityLocator.Workstations(RoomName)).Select(s => s.EntityId);
+        var workstationSensorsList = new List<IObservable<(EntityState Old, EntityState New)>>();
+
+        foreach (var entityId in workstationEntityIds)
+        {
+            workstationSensorsList.Add(
+                Entity(entityId)
+                    .StateChangesFiltered()
+                    .Select<(EntityState Old, EntityState New),
+                        (EntityState Old, EntityState New)>
+                    (e => (
+                        new EntityState
+                        {
+                            EntityId = e.Old.EntityId,
+                            State = e.Old.State
+                        },
+                        new EntityState
+                        {
+                            EntityId = e.New.EntityId,
+                            State = e.New.State
+                        }))
+                    .NDSameStateFor(WorkstationDebounce));
+        }
+
+        var workstations = workstationSensorsList.Merge();
+        return workstations;
+    }
+
+    private IObservable<(EntityState Old, EntityState New)> GetPowerSensors()
+    {
+        var powerSensorEntityIds = States.Where(EntityLocator.PowerSensors(RoomName)).Select(s => s.EntityId);
+        var powerSensorsList = new List<IObservable<(EntityState Old, EntityState New)>>();
+
+        foreach (var entityId in powerSensorEntityIds)
+        {
+            powerSensorsList.Add(
+                Entity(entityId)
+                    .StateChangesFiltered()
+                    .Select<(EntityState Old, EntityState New),
+                        (EntityState Old, EntityState New)>
+                    (e => (
+                        new EntityState
+                        {
+                            EntityId = e.Old.EntityId,
+                            State = e.Old.State >= e.Old.Attribute!.active_threshold ? "on" : "off"
+                        },
+                        new EntityState
+                        {
+                            EntityId = e.New.EntityId,
+                            State = e.New.State >= e.New.Attribute!.active_threshold ? "on" : "off"
+                        }))
+                    .NDSameStateFor(PowerSensorDebounce));
+        }
+
+        var powerSensors = powerSensorsList.Merge();
+        return powerSensors;
     }
 
     private void LogDiscoveredEntities()
@@ -235,15 +286,15 @@ public abstract class RoomApp : NetDaemonRxApp
 
         DebugLog("==============================================");
         DebugLog("Room discovery");
-        DebugEntityDiscovery(MotionSensors, nameof(MotionSensors));
-        DebugEntityDiscovery(PowerSensors, nameof(PowerSensors));
-        DebugEntityDiscovery(MediaPlayerDevices, nameof(MediaPlayerDevices));
-        DebugEntityDiscovery(PrimaryLights, nameof(PrimaryLights));
-        DebugEntityDiscovery(SecondaryLights, nameof(SecondaryLights));
-        DebugEntityDiscovery(EntryPoints, nameof(EntryPoints));
-        DebugEntityDiscovery(Workstations, nameof(Workstations));
-        DebugEntityDiscovery(OccupancySensors, nameof(OccupancySensors));
-        DebugEntityDiscovery(MasterOffSwitches, nameof(MasterOffSwitches));
+        DebugEntityDiscovery(EntityLocator.MotionSensors(RoomName), "MotionSensors");
+        DebugEntityDiscovery(EntityLocator.PowerSensors(RoomName), "PowerSensors");
+        DebugEntityDiscovery(EntityLocator.MediaPlayerDevices(RoomName), "MediaPlayerDevices");
+        DebugEntityDiscovery(EntityLocator.PrimaryLights(RoomName), "PrimaryLights");
+        DebugEntityDiscovery(EntityLocator.SecondaryLights(RoomName), "SecondaryLights");
+        DebugEntityDiscovery(EntityLocator.EntryPoints(RoomName), "EntryPoints");
+        DebugEntityDiscovery(EntityLocator.Workstations(RoomName), "Workstations");
+        DebugEntityDiscovery(EntityLocator.OccupancySensors(RoomName), "OccupancySensors");
+        DebugEntityDiscovery(EntityLocator.MasterOffSwitches(RoomName), "MasterOffSwitches");
         DebugLog("==============================================");
     }
 
@@ -267,29 +318,26 @@ public abstract class RoomApp : NetDaemonRxApp
         DebugLog("Checking occupancy markers");
         DebugLog("-----------------------");
 
-        foreach (var os in States.Where(e => AllOccupancySensors(e) || MediaPlayerDevices(e) || Workstations(e) || Lights(e)))
+        foreach (var os in States.Where(e => EntityLocator.OccupancySensors(RoomName)(e) || EntityLocator.MediaPlayerDevices(RoomName)(e) || EntityLocator.Workstations(RoomName)(e) || EntityLocator.Lights(RoomName)(e)))
         {
             DebugLog("{os}:{state}", os.EntityId, os.State);
         }
 
-        foreach (var ps in States.Where(e => PowerSensors(e)))
+        foreach (var ps in States.Where(e => EntityLocator.PowerSensors(RoomName)(e)))
         {
-            DebugLog("{ps}:{state}W - Threshold {threshold}W - Above threshold: {threshholdmet}", ps.EntityId, ps.State,
-                ps.Attribute!.active_threshold, ps.State >= ps.Attribute.active_threshold);
+            DebugLog("{ps}:{state}W - Threshold {threshold}W - Above threshold: {threshholdmet}", ps.EntityId, ps.State, ps.Attribute!.active_threshold, ps.State >= ps.Attribute.active_threshold);
         }
 
-        DebugLog("Occupancy timer is running: {timer}", State(TimerEntityName)?.State);
+        DebugLog("Occupancy timer state: {timer}", State(EntityLocator.TimerEntityName(RoomName))?.State);
         DebugLog("-----------------------");
 
-        var occupancy = this.AnyStatesAre(AllOccupancySensors, "on", "open");
-        //var entry = this.AnyStatesAre(EntryPoints, "on");
-        var media = this.AnyStatesAre(MediaPlayerDevices, "playing");
-        var workstation = this.AnyStatesAre(Workstations, "home");
-        var power = this.AnyStatesAre(PowerSensors, p => p.State >= p.Attribute!.active_threshold);
-        var timer = State(TimerEntityName)!.State != "idle";
+        var occupancy = this.AnyStatesAre(EntityLocator.OccupancySensors(RoomName), "on", "open");
+        var media = this.AnyStatesAre(EntityLocator.MediaPlayerDevices(RoomName), "playing");
+        var workstation = this.AnyStatesAre(EntityLocator.Workstations(RoomName), "home");
+        var power = this.AnyStatesAre(EntityLocator.PowerSensors(RoomName), p => p.State >= p.Attribute!.active_threshold);
+        var timer = State(EntityLocator.TimerEntityName(RoomName))!.State == "active";
 
         return occupancy ||
-               //entry || 
                media ||
                workstation ||
                power ||
@@ -315,38 +363,15 @@ public abstract class RoomApp : NetDaemonRxApp
     {
         DebugLog("Starting timer");
 
-        CallService("timer", "cancel", new { entity_id = TimerEntityName });
-        CallService("timer", "start", new { entity_id = TimerEntityName, duration = OccupancyTimeoutObserved.ToString() });
+        CallService("timer", "cancel", new { entity_id = EntityLocator.TimerEntityName(RoomName) });
+        CallService("timer", "start", new { entity_id = EntityLocator.TimerEntityName(RoomName), duration = OccupancyTimeoutObserved.ToString() });
     }
 
     public void StopTimer()
     {
         DebugLog("Stopping timer");
 
-        CallService("timer", "finish", new { entity_id = TimerEntityName });
-    }
-
-
-    private bool IsEntityMatch(IEntityProperties prop, EntityType entityType, params DeviceClass[] deviceClasses)
-    {
-        var entityString = entityType.AsString(EnumFormat.DisplayName, EnumFormat.Name)!.ToLower();
-        var deviceStrings = deviceClasses.Select(t => t.AsString(EnumFormat.DisplayName, EnumFormat.Name)!.ToLower()).ToList();
-
-        var areas = prop.Attribute?.area;
-
-        if (areas == null)
-            return false;
-
-        if (!((string)areas).Split(",").Contains(RoomName.ToLower()))
-            return false;
-
-        if (prop.EntityId.ToLower().Split(".")[0] != entityString)
-            return false;
-
-        if (deviceStrings == null || !deviceStrings.Any())
-            return true;
-
-        return deviceStrings.Contains(prop.Attribute?.device_class);
+        CallService("timer", "finish", new { entity_id = EntityLocator.TimerEntityName(RoomName) });
     }
 
     public void ToggleLights(bool on)
@@ -354,17 +379,17 @@ public abstract class RoomApp : NetDaemonRxApp
 
         DebugLog("Toggle lights: {on}", on);
 
-        var primaryLights = Entities(PrimaryLights);
-        var secondaryLights = Entities(SecondaryLights);
+        var primaryLights = Entities(EntityLocator.PrimaryLights(RoomName));
+        var secondaryLights = Entities(EntityLocator.SecondaryLights(RoomName));
         if (@on)
         {
-            if (!this.AllStatesAre(PrimaryLights, "on") && AutomatedLightsOn)
+            if (!this.AllStatesAre(EntityLocator.PrimaryLights(RoomName), "on") && AutomatedLightsOn)
             {
                 LogHistory($"Turning lights on");
                 primaryLights.TurnOn();
             }
 
-            if (!this.AllStatesAre(SecondaryLights, "on") && SecondaryLightingEnabled)
+            if (!this.AllStatesAre(EntityLocator.SecondaryLights(RoomName), "on") && SecondaryLightingEnabled)
             {
                 LogHistory($"Turning secondary lights on");
 
@@ -380,7 +405,7 @@ public abstract class RoomApp : NetDaemonRxApp
         }
         else if (!on)
         {
-            if (!this.AllStatesAre(PrimaryLights, "off") && AutomatedLightsOff)
+            if (!this.AllStatesAre(EntityLocator.PrimaryLights(RoomName), "off") && AutomatedLightsOff)
             {
                 LogHistory($"Turning lights off");
                 primaryLights.TurnOff();
@@ -399,47 +424,4 @@ public abstract class RoomApp : NetDaemonRxApp
     {
         LogHelper.Log(this, RoomName.Humanize(), automation);
     }
-}
-
-public static class EntityStateExtensions
-{
-    public static IObservable<(EntityState Old, EntityState New)> StateChangesFiltered(this RxEntity entity)
-    {
-        // not from unavailable to something
-        // not from something to unavailable
-        // not to and from the same status
-        return entity.StateChanges.Where(s =>
-        s.Old.State != null &&
-        s.New.State != null && // may need to check for "unknown"
-        s.Old.State != s.New.State);
-    }
-}
-
-public enum EntityType
-{
-    [Display(Name = "binary_sensor")]
-    BinarySensor,
-    Light,
-    Switch,
-    [Display(Name = "media_player")]
-    MediaPlayer,
-    Sensor,
-    Cover,
-    [Display(Name = "device_tracker")]
-    WorkStation
-}
-
-public enum DeviceClass
-{
-    Motion,
-    Power,
-    Door,
-    Window,
-    Garage,
-    Occupancy
-}
-
-public enum SwitchType
-{
-    MasterOff
 }
