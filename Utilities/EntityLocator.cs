@@ -57,6 +57,8 @@ namespace daemonapp.Utilities
         public static Func<IEntityProperties, bool> MasterOffSwitches(string roomName) => e => IsEntityMatch(roomName,e, EntityType.Sensor) && e.Attribute!.switch_type == SwitchType.MasterOff.AsString(EnumFormat.DisplayName, EnumFormat.Name)!.ToLower();
 
         public static string RoomPresenceEntityName(string roomName) => $"input_boolean.presence_{roomName.ToLower()}";
+
+        public static string MotionEntityName(bool indoorRoom) => indoorRoom ? "input_boolean.indoor_motion_enabled" : "input_boolean.outdoor_motion_enabled";
         public static string TimerEntityName(string roomName) => $"timer.occupancy_{roomName.ToLower()}";
 
         private static bool IsEntityMatch(string roomName, IEntityProperties prop, EntityType entityType, params DeviceClass[] deviceClasses)

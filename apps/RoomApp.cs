@@ -22,10 +22,7 @@ public abstract class RoomApp : NetDaemonRxApp
 
     protected abstract bool IndoorRoom { get; }
 
-    protected virtual bool AutomatedLightsOn => IndoorRoom
-        ? State("input_boolean.indoor_motion_enabled")?.State == "on"
-        : State("input_boolean.outdoor_motion_enabled")?.State == "on";
-
+    protected virtual bool AutomatedLightsOn => State(EntityLocator.MotionEntityName(IndoorRoom))?.State == "on";
     protected virtual bool AutomatedLightsOff => true;
 
     protected virtual bool AutoDiscoverDevices => true;
@@ -40,6 +37,16 @@ public abstract class RoomApp : NetDaemonRxApp
     protected virtual TimeSpan PowerSensorDebounce => TimeSpan.FromSeconds(30);
     protected virtual TimeSpan MediaPlayerDebounce => TimeSpan.FromMinutes(1);
     protected virtual TimeSpan WorkstationDebounce => TimeSpan.FromMinutes(1);
+
+    bool OffToOn((EntityState Old, EntityState New) s)
+    {
+        return s.Old.State == "off" && s.New.State == "on";
+    }
+
+    bool OnToOff((EntityState Old, EntityState New) s)
+    {
+        return s.Old.State == "on" && s.New.State == "off";
+    }
 
     public override void Initialize()
     {
@@ -110,20 +117,18 @@ public abstract class RoomApp : NetDaemonRxApp
             else
                 OccupancyOff();
         });
+
+        // if motion is enabled then turn on lights that are marked for enabled
+        // this shoudl solve if a sensor would have turned on lights but motion was disabled when it went off
+        Entity(EntityLocator.MotionEntityName(IndoorRoom)).StateChangesFiltered().Where(OffToOn).Subscribe(_ =>
+        {
+            StartTimer();
+            ToggleLights(true);
+        });
     }
 
     private void WireUpNonOccupancyMarkers()
     {
-        bool OffToOn((EntityState Old, EntityState New) s)
-        {
-            return s.Old.State == "off" && s.New.State == "on";
-        }
-
-        bool OnToOff((EntityState Old, EntityState New) s)
-        {
-            return s.Old.State == "on" && s.New.State == "off";
-        }
-
         // When motion is detected or light is turned on start timer and toggle lights on (adhering to automated lighting rules) 
         Observable.Merge(
                 Entities(EntityLocator.MotionSensors(RoomName)).StateChangesFiltered().Where(OffToOn),
@@ -318,30 +323,37 @@ public abstract class RoomApp : NetDaemonRxApp
         DebugLog("Checking occupancy markers");
         DebugLog("-----------------------");
 
-        foreach (var os in States.Where(e => EntityLocator.OccupancySensors(RoomName)(e) || EntityLocator.MediaPlayerDevices(RoomName)(e) || EntityLocator.Workstations(RoomName)(e) || EntityLocator.Lights(RoomName)(e)))
+        foreach (var os in States.Where(e =>
+            EntityLocator.OccupancySensors(RoomName)(e) || EntityLocator.MediaPlayerDevices(RoomName)(e) ||
+            EntityLocator.Workstations(RoomName)(e) || EntityLocator.Lights(RoomName)(e)))
         {
             DebugLog("{os}:{state}", os.EntityId, os.State);
         }
 
         foreach (var ps in States.Where(e => EntityLocator.PowerSensors(RoomName)(e)))
         {
-            DebugLog("{ps}:{state}W - Threshold {threshold}W - Above threshold: {threshholdmet}", ps.EntityId, ps.State, ps.Attribute!.active_threshold, ps.State >= ps.Attribute.active_threshold);
+            DebugLog("{ps}:{state}W - Threshold {threshold}W - Above threshold: {threshholdmet}", ps.EntityId, ps.State,
+                ps.Attribute!.active_threshold, ps.State >= ps.Attribute.active_threshold);
         }
 
         DebugLog("Occupancy timer state: {timer}", State(EntityLocator.TimerEntityName(RoomName))?.State);
         DebugLog("-----------------------");
 
+        var motion = this.AnyStatesAre(EntityLocator.MotionSensors(RoomName), "on");
         var occupancy = this.AnyStatesAre(EntityLocator.OccupancySensors(RoomName), "on", "open");
         var media = this.AnyStatesAre(EntityLocator.MediaPlayerDevices(RoomName), "playing");
         var workstation = this.AnyStatesAre(EntityLocator.Workstations(RoomName), "home");
-        var power = this.AnyStatesAre(EntityLocator.PowerSensors(RoomName), p => p.State >= p.Attribute!.active_threshold);
+        var power = this.AnyStatesAre(EntityLocator.PowerSensors(RoomName),
+            p => p.State >= p.Attribute!.active_threshold);
         var timer = State(EntityLocator.TimerEntityName(RoomName))!.State == "active";
 
-        return occupancy ||
-               media ||
-               workstation ||
-               power ||
-               timer;
+        return
+            motion || // include motion as motion may never actually turn off if its consistently triggered on, and hence the timer will not be running
+            occupancy ||
+            media ||
+            workstation ||
+            power ||
+            timer;
     }
 
     public void OccupancyOn()
