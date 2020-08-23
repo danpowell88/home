@@ -13,7 +13,7 @@ public class Kitchen : RoomApp
     protected override bool IndoorRoom => true;
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(10);
 
-    private const string DishwasterStatus = "input_select.dishwasher_status";
+    private const string DishwasherStatus = "input_select.dishwasher_status";
     private const string DishwasherPowerSensor = "switch.dishwasher";
     private const string DishwasherDoor = "binary_sensor.dishwasher_door_contact";
 
@@ -48,7 +48,7 @@ public class Kitchen : RoomApp
     private void SetupDishwasher()
     {
         Entity(DishwasherPowerSensor)
-            .StateChangesFiltered()
+            .StateAllChangesFiltered()
             .Where(s =>
             {
                 var resetStates = new List<DishwasherState> { DishwasherState.Dirty, DishwasherState.Clean };
@@ -59,11 +59,11 @@ public class Kitchen : RoomApp
             .Subscribe(_ =>
             {
                 LogHistory("Dishwasher running");
-                Entity(DishwasterStatus).SetOption(DishwasherState.Running);
+                Entity(DishwasherStatus).SetOption(DishwasherState.Running);
             });
 
         Entity(DishwasherPowerSensor)
-            .StateChangesFiltered()
+            .StateAllChangesFiltered()
             .Where(s =>
                 GetDishwasherWattage(s.New!) < 1D &&
                 GetDishwasherState() == DishwasherState.Running)
@@ -71,7 +71,7 @@ public class Kitchen : RoomApp
             .Subscribe(_ =>
             {
                 LogHistory("Dishwasher clean");
-                Entity(DishwasterStatus).SetOption(DishwasherState.Clean);
+                Entity(DishwasherStatus).SetOption(DishwasherState.Clean);
             });
 
         Entity(DishwasherDoor)
@@ -86,10 +86,10 @@ public class Kitchen : RoomApp
             .Subscribe(_ =>
             {
                 LogHistory("Dishwasher dirty");
-                Entity(DishwasterStatus).SetOption(DishwasherState.Dirty);
+                Entity(DishwasherStatus).SetOption(DishwasherState.Dirty);
             });
 
-        Entity(DishwasterStatus)
+        Entity(DishwasherStatus)
             .StateChangesFiltered()
             .Where(s => s.Old!.State == DishwasherState.Running.ToString("F") &&
                         s.New!.State == DishwasherState.Clean.ToString("F"))
@@ -113,7 +113,7 @@ public class Kitchen : RoomApp
 
     private DishwasherState GetDishwasherState()
     {
-        return Enums.Parse<DishwasherState>(State(DishwasterStatus)!.State);
+        return Enums.Parse<DishwasherState>(State(DishwasherStatus)!.State);
     }
 
     private enum DishwasherState

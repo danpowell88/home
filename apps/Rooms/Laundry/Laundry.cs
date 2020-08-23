@@ -22,7 +22,7 @@ public class Laundry : RoomApp
     public override void Initialize()
     {
         Entity(WashingMachinePowerSensor)
-            .StateChangesFiltered()
+            .StateAllChangesFiltered()
             .Where(s =>
             {
                 var resetStates = new List<WashingMachineState>
@@ -40,7 +40,7 @@ public class Laundry : RoomApp
             });
 
         Entity(WashingMachinePowerSensor)
-            .StateChangesFiltered()
+            .StateAllChangesFiltered()
             .Where(s =>
                 GetWashingMachineWattage(s.New!) < 6D &&
                 GetWashingMachineState() == WashingMachineState.Running)
