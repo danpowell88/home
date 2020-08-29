@@ -22,6 +22,7 @@ public class Garage : RoomApp
         Entity("cover.garage_door")
             .StateChangesFiltered()
             .Where(s => s.Old.State == "closed" && s.New.State == "open")
+            .Synchronize()
             .NDSameStateFor(TimeSpan.FromMinutes(20))
             .Subscribe(s =>
             {

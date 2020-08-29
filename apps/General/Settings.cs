@@ -14,21 +14,10 @@ public class Settings : NetDaemonRxApp
             .Where(s => s.Old.Attribute!.elevation != s.New.Attribute!.elevation)
             .Subscribe(s => SetOutdoorMotionVariables(s.New));
 
-        Entity("input_boolean.left_home")
-            .StateChangesFiltered()
-            .Where(s => s.Old.State == "off" && s.New.State == "on")
-            .Subscribe(_ => SetIndoorMotionVariables());
-
-        Entity("sensor.bed_occupancy_count")
+        Entities(e => e.EntityId.StartsWith("person.") || e.EntityId == "input_boolean.left_home" || e.EntityId == "sensor.bed_occupancy_count" || e.EntityId == "group.family")
             .StateChangesFiltered()
             .Synchronize()
             .Subscribe(_ => { SetIndoorMotionVariables(); });
-
-        Entity("group.family")
-            .StateChangesFiltered()
-            .Synchronize()
-            //.Where(s => s.Old.State == "not_home" && s.New.State == "home")
-            .Subscribe(_ => SetIndoorMotionVariables());
 
         Entity("input_boolean.party_mode")
             .StateChangesFiltered()

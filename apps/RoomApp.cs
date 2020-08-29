@@ -122,8 +122,11 @@ public abstract class RoomApp : NetDaemonRxApp
         // this shoudl solve if a sensor would have turned on lights but motion was disabled when it went off
         Entity(EntityLocator.MotionEntityName(IndoorRoom)).StateChangesFiltered().Where(OffToOn).Subscribe(_ =>
         {
-            StartTimer();
-            ToggleLights(true);
+            if (AnyOccupanyMarkers()) 
+            {
+                StartTimer();
+                ToggleLights(true);
+            }
         });
     }
 
