@@ -11,7 +11,7 @@ public class Gym : RoomApp
     private const string BikeFanSwitch = "switch.gym_bike_fan";
     private const string WeightFanSwitch = "switch.gym_weights_fan";
     private const string FanButton = "sensor.gym_switch_click";
-    private const int FanTriggerTemp = 25;
+    private const decimal FanTriggerTemp = 25;
 
     public override void Initialize()
     {

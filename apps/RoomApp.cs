@@ -83,7 +83,6 @@ public abstract class RoomApp : NetDaemonRxApp
         var powerSensors = GetPowerSensors();
         var workstations = GetWorkstations();
         var mediaPlayers = GetMediaPlayers();
-
         var timerChanges = GetTimerChanges();
 
         Observable
@@ -134,7 +133,7 @@ public abstract class RoomApp : NetDaemonRxApp
     {
         // When motion is detected or light is turned on start timer and toggle lights on (adhering to automated lighting rules) 
         Observable.Merge(
-                Entities(EntityLocator.MotionSensors(RoomName)).StateChangesFiltered().Where(OffToOn),
+                Entities(EntityLocator.MotionSensors(RoomName)).StateChangesFiltered(),
                 Entities(EntityLocator.Lights(RoomName)).StateChangesFiltered().Where(OffToOn),
                 Entities(EntityLocator.EntryPoints(RoomName)).StateChangesFiltered()) // dont know if you are entering or leaving (so we'll just trigger the lights and timer)
             .Synchronize()
@@ -198,7 +197,7 @@ public abstract class RoomApp : NetDaemonRxApp
         return roomPresence;
     }
 
-    private IObservable<(EntityState Old, EntityState New)> GetMediaPlayers()
+    protected IObservable<(EntityState Old, EntityState New)> GetMediaPlayers()
     {
         var mediaPlayerEntityIds = States.Where(EntityLocator.MediaPlayerDevices(RoomName)).Select(s => s.EntityId);
         var mediaPlayerSensorsList = new List<IObservable<(EntityState Old, EntityState New)>>();
@@ -228,7 +227,7 @@ public abstract class RoomApp : NetDaemonRxApp
         return mediaPlayers;
     }
 
-    private IObservable<(EntityState Old, EntityState New)> GetWorkstations()
+    protected IObservable<(EntityState Old, EntityState New)> GetWorkstations()
     {
         var workstationEntityIds = States.Where(EntityLocator.Workstations(RoomName)).Select(s => s.EntityId);
         var workstationSensorsList = new List<IObservable<(EntityState Old, EntityState New)>>();
@@ -258,7 +257,7 @@ public abstract class RoomApp : NetDaemonRxApp
         return workstations;
     }
 
-    private IObservable<(EntityState Old, EntityState New)> GetPowerSensors()
+    protected IObservable<(EntityState Old, EntityState New)> GetPowerSensors()
     {
         var powerSensorEntityIds = States.Where(EntityLocator.PowerSensors(RoomName)).Select(s => s.EntityId);
         var powerSensorsList = new List<IObservable<(EntityState Old, EntityState New)>>();

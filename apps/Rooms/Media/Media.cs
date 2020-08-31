@@ -16,7 +16,7 @@ public class Media : RoomApp
     {
         // Lights off when movie is playing
         // Entity("media_player.media_emby")
-        Entity("media_player.emby_chrome")
+        Entity("media_player.media_emby")
             .StateChangesFiltered()
             .Where(s =>
                 s.New!.State == "playing"
