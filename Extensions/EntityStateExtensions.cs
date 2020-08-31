@@ -25,4 +25,15 @@ public static class EntityStateExtensions
             s.Old.State != null &&
             s.New.State != null);
     }
+
+    public static IObservable<TSource> FilterDistinctUntilChanged<TSource>(this IObservable<TSource> source,
+        Func<TSource, bool> criteria)
+    {
+        if (source == null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
+        return source.Where(criteria).DistinctUntilChanged(criteria);
+    }
 }

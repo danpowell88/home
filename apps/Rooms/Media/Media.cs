@@ -31,9 +31,9 @@ public class Media : RoomApp
         // Lights on when 5 minutes before end of movie
         Entity("media_player.media_emby")
             .StateAllChanges
-            .Where(s =>
+            .FilterDistinctUntilChanged(s =>
                 s.New!.Attribute!.media_content_type == "movie" &&
-                s.New.Attribute!.media_duration - s.New.Attribute.media_position == 300 &&
+                s.New.Attribute!.media_duration - s.New.Attribute.media_position <= 300 &&
                 s.New.State == "playing")
             .Subscribe(_ =>
             {

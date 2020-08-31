@@ -4,7 +4,6 @@ using System.Reactive.Linq;
 using daemonapp.Utilities;
 using EnumsNET;
 using JetBrains.Annotations;
-using NetDaemon.Common;
 using NetDaemon.Common.Reactive;
 
 [UsedImplicitly]
@@ -14,21 +13,21 @@ public class Laundry : RoomApp
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(5);
 
     private const string WashingMachineStatus = "input_select.washing_machine_status";
-    private const string WashingMachinePowerSensor =  "switch.washing_machine";
+    private const string WashingMachinePowerSensor = "sensor.washing_machine_watts";
     private const string WashingMachineDoorContact = "binary_sensor.washing_machine_door_contact";
 
     private IDisposable? _washingDoneTimer;
 
     public override void Initialize()
     {
-        Entity(WashingMachinePowerSensor)
-            .StateAllChangesFiltered()
-            .Where(s =>
+        Entities(WashingMachinePowerSensor, WashingMachineStatus)
+            .StateChangesFiltered()
+            .FilterDistinctUntilChanged(s =>
             {
                 var resetStates = new List<WashingMachineState>
                     {WashingMachineState.Idle, WashingMachineState.Clean, WashingMachineState.Finishing};
 
-                return GetWashingMachineWattage(s.New!) > 10D &&
+                return GetWashingMachineWattage() > 10D &&
                        resetStates.Contains(GetWashingMachineState());
             })
             .Subscribe(_ =>
@@ -39,22 +38,19 @@ public class Laundry : RoomApp
                 Entity(WashingMachineStatus).SetOption(WashingMachineState.Running);
             });
 
-        Entity(WashingMachinePowerSensor)
-            .StateAllChangesFiltered()
-            .Where(s =>
-                GetWashingMachineWattage(s.New!) < 6D &&
-                GetWashingMachineState() == WashingMachineState.Running)
-            .NDSameStateFor(TimeSpan.FromSeconds(170))
+        Entities(WashingMachinePowerSensor, WashingMachineStatus)
+            .StateChangesFiltered()
+            .FilterDistinctUntilChanged(s => GetWashingMachineWattage() < 5D && GetWashingMachineState() == WashingMachineState.Running)
+            .NDSameStateFor(new TimeSpan(0, 1, 0))
             .Subscribe(_ =>
             {
                 LogHistory("Washing machine finishing");
                 Entity(WashingMachineStatus).SetOption(WashingMachineState.Finishing);
             });
 
-        Entity(WashingMachineStatus)
+        Entities(WashingMachineStatus)
             .StateChangesFiltered()
-            .Where(s =>
-                GetWashingMachineState() == WashingMachineState.Finishing)
+            .Where(s => GetWashingMachineState() == WashingMachineState.Finishing)
             .NDSameStateFor(new TimeSpan(0, 1, 0))
             .Subscribe(_ =>
             {
@@ -75,7 +71,7 @@ public class Laundry : RoomApp
                 Entity(WashingMachineStatus).SetOption(WashingMachineState.Idle);
             });
 
-        Entity(WashingMachineStatus)
+        Entities(WashingMachineStatus)
             .StateChangesFiltered()
             .Where(s =>
                 s.Old!.State == WashingMachineState.Finishing.ToString("F") &&
@@ -87,7 +83,7 @@ public class Laundry : RoomApp
                 if (_washingDoneTimer != null)
                     return;
 
-                _washingDoneTimer = RunEvery(TimeSpan.FromMinutes(30), () =>
+                _washingDoneTimer = RunNowAndEvery(TimeSpan.FromMinutes(30), () =>
                 {
                     if (GetWashingMachineState() == WashingMachineState.Clean)
                     {
@@ -123,9 +119,9 @@ public class Laundry : RoomApp
         }
     }
 
-    private static double GetWashingMachineWattage(EntityState to)
+    private double GetWashingMachineWattage()
     {
-        return to!.Attribute!.current_power_w ?? 0D;
+        return State(WashingMachinePowerSensor)?.State ?? 0;
     }
 
     private WashingMachineState GetWashingMachineState()

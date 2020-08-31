@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reactive.Linq;
 using daemonapp.Utilities;
-using EnumsNET;
 using Humanizer;
 using Microsoft.Extensions.Logging;
 using NetDaemon.Common;
@@ -139,8 +137,13 @@ public abstract class RoomApp : NetDaemonRxApp
             .Synchronize()
             .Subscribe(s =>
             {
-                StartTimer();
-                ToggleLights(true);
+                // only turn lights on if a the event isnt a motion sensor and the lights havent already been turned off (they should still be on unless for manual intervention)
+                if (s.New?.Attribute?.device_class != "motion" || s.New?.State != "on" ||
+                    this.AnyStatesAre(EntityLocator.Lights(RoomName), "on"))
+                {
+                    StartTimer();
+                    ToggleLights(true);
+                }
             });
 
         // handles the case where someone manually switches the lights off (not by an automation, ie. by hand or HA GUI)
@@ -167,8 +170,16 @@ public abstract class RoomApp : NetDaemonRxApp
             .Where(s => s.New.State == "single")
             .Subscribe(_ =>
             {
-                LogHistory("Turn everything off");
-                TurnEveryThingOff();
+                if (_.New.LastChanged - DateTime.Now <= TimeSpan.FromSeconds(5))
+                {
+                    LogHistory("Turn everything off double click");
+                    this.TurnEverythingOff();
+                }
+                else
+                {
+                    LogHistory("Turn everything off");
+                    TurnEveryThingOff();
+                }
             });
     }
 
@@ -395,9 +406,9 @@ public abstract class RoomApp : NetDaemonRxApp
 
         var primaryLights = Entities(EntityLocator.PrimaryLights(RoomName));
         var secondaryLights = Entities(EntityLocator.SecondaryLights(RoomName));
-        if (@on)
+        if (@on && AutomatedLightsOn)
         {
-            if (!this.AllStatesAre(EntityLocator.PrimaryLights(RoomName), "on") && AutomatedLightsOn)
+            if (!this.AllStatesAre(EntityLocator.PrimaryLights(RoomName), "on"))
             {
                 LogHistory($"Turning lights on");
                 primaryLights.TurnOn();
@@ -437,5 +448,12 @@ public abstract class RoomApp : NetDaemonRxApp
     public void LogHistory(string automation)
     {
         LogHelper.Log(this, RoomName.Humanize(), automation);
+    }
+
+    public IDisposable RunNowAndEvery(TimeSpan interval, Action action)
+    {
+        action();
+
+        return RunEvery(interval, action);
     }
 }

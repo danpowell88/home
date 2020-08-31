@@ -2,7 +2,6 @@ using System;
 using System.Reactive.Linq;
 using daemonapp.Utilities;
 using JetBrains.Annotations;
-using NetDaemon.Common.Reactive;
 
 [UsedImplicitly]
 public class Garage : RoomApp
@@ -23,15 +22,15 @@ public class Garage : RoomApp
             .StateChangesFiltered()
             .Where(s => s.Old.State == "closed" && s.New.State == "open")
             .Synchronize()
-            .NDSameStateFor(TimeSpan.FromMinutes(20))
             .Subscribe(s =>
             {
-                LogHistory($"Garage door left open");
+                LogHistory($"Garage door left open setup");
 
                 CancelOpenTimer();
 
                 _garageOpenTimer = RunEvery(TimeSpan.FromMinutes(20), () =>
                 {
+                    LogHistory($"Garage door left open timer");
                     if (State("cover.garage_door")!.State == "open")
                     {
                         var filename = $"{Guid.NewGuid()}.jpg";

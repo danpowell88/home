@@ -4,7 +4,6 @@ using System.Reactive.Linq;
 using daemonapp.Utilities;
 using EnumsNET;
 using JetBrains.Annotations;
-using NetDaemon.Common;
 using NetDaemon.Common.Reactive;
 
 [UsedImplicitly]
@@ -14,7 +13,7 @@ public class Kitchen : RoomApp
     protected override TimeSpan OccupancyTimeout => TimeSpan.FromMinutes(10);
 
     private const string DishwasherStatus = "input_select.dishwasher_status";
-    private const string DishwasherPowerSensor = "switch.dishwasher";
+    private const string DishwasherPowerSensor = "sensor.dishwasher_watts";
     private const string DishwasherDoor = "binary_sensor.dishwasher_door_contact";
 
     protected override bool SecondaryLightingEnabled => DateTime.Now.Hour >= 18 && DateTime.Now.Hour <= 22;
@@ -23,25 +22,6 @@ public class Kitchen : RoomApp
     {
         SetupDishwasher();
 
-        //Entity("binary_sensor.fridge_door_contact")
-        //    .StateChangesFiltered()
-        //    .Where(s => s.Old!.State == "off" && s.New.State == "on")
-        //    .Subscribe(_ =>
-        //    {
-        //        if ((State("person.daniel")!.State != "home" ||
-        //             State("binary_sensor.media_chair_right_occupancy")!.State == "on") &&
-        //            DateTime.Now.Hour > 15 && DateTime.Now.Hour < 20 &&
-        //            ((DateTime?)Storage.LastFridgeNotification == null ||
-        //             DateTime.Now - (DateTime)Storage.LastFridgeNotification >=
-        //             TimeSpan.FromHours(24)))
-        //        {
-        //            this.Notify(new Uri("http://192.168.1.2:8123/local/big_pig_snort.mp3"), 0.4M,
-        //                Notifier.AudioNotificationDevice.Kitchen);
-        //            Storage.LastFridgeNotification = DateTime.Now;
-        //        }
-        //    });
-
-
         base.Initialize();
     }
 
@@ -49,11 +29,11 @@ public class Kitchen : RoomApp
     {
         Entity(DishwasherPowerSensor)
             .StateAllChangesFiltered()
-            .Where(s =>
+            .FilterDistinctUntilChanged(s =>
             {
                 var resetStates = new List<DishwasherState> { DishwasherState.Dirty, DishwasherState.Clean };
 
-                return GetDishwasherWattage(s.New!) > 10D &&
+                return GetDishwasherWattage() > 10D &&
                        resetStates.Contains(GetDishwasherState());
             })
             .Subscribe(_ =>
@@ -63,9 +43,9 @@ public class Kitchen : RoomApp
             });
 
         Entity(DishwasherPowerSensor)
-            .StateAllChangesFiltered()
-            .Where(s =>
-                GetDishwasherWattage(s.New!) < 1D &&
+            .StateChangesFiltered()
+            .FilterDistinctUntilChanged(s =>
+                GetDishwasherWattage() < 1D &&
                 GetDishwasherState() == DishwasherState.Running)
             .NDSameStateFor(new TimeSpan(0, 1, 45))
             .Subscribe(_ =>
@@ -76,11 +56,11 @@ public class Kitchen : RoomApp
 
         Entity(DishwasherDoor)
             .StateChangesFiltered()
-            .Where(s =>
+            .FilterDistinctUntilChanged(s =>
                 s.Old!.State == "off" &&
                 s.New!.State == "on" &&
                 (
-                    GetDishwasherWattage(s.New!) < 1D ||
+                    GetDishwasherWattage() < 1D ||
                     GetDishwasherState() == DishwasherState.Clean)
             )
             .Subscribe(_ =>
@@ -106,9 +86,9 @@ public class Kitchen : RoomApp
             });
     }
 
-    private static double GetDishwasherWattage(EntityState to)
+    private double GetDishwasherWattage()
     {
-        return to!.Attribute!.current_power_w ?? 0D;
+        return State(DishwasherPowerSensor)?.State ?? 0;
     }
 
     private DishwasherState GetDishwasherState()

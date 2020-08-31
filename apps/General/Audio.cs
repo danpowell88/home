@@ -24,6 +24,9 @@ public class Audio : NetDaemonRxApp
                 this.SetTTSVolume();
             });
 
+
+        this.SetTTSVolume();
+
          base.Initialize();
     }
 }

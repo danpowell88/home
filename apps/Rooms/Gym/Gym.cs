@@ -17,7 +17,7 @@ public class Gym : RoomApp
     {
         Entity(Training!)
             .StateChangesFiltered()
-            .Where(s =>
+            .FilterDistinctUntilChanged(s =>
                 (s.New!.State ?? 0L) >= s.New.Attribute!.active_threshold &&
                 State(Climate!)!.State >= FanTriggerTemp)
             .NDSameStateFor(TimeSpan.FromMinutes(1))
@@ -30,7 +30,7 @@ public class Gym : RoomApp
 
         Entity(Climate!)
             .StateChangesFiltered()
-            .Where(s =>
+            .FilterDistinctUntilChanged(s =>
                 (decimal?)s.Old!.State! < FanTriggerTemp &&
                 (decimal?)s.New!.State! >= FanTriggerTemp &&
                 State(Training!)!.State == "on")
@@ -43,7 +43,7 @@ public class Gym : RoomApp
 
         Entity(Training!)
             .StateChangesFiltered()
-            .Where(s =>
+            .FilterDistinctUntilChanged(s =>
                 (s.New!.State ?? 0L) < s.New.Attribute!.active_threshold)
             .NDSameStateFor(TimeSpan.FromMinutes(2))
             .Subscribe(_ =>
