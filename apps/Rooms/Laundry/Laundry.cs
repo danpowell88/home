@@ -22,13 +22,12 @@ public class Laundry : RoomApp
     {
         Entities(WashingMachinePowerSensor, WashingMachineStatus)
             .StateChangesFiltered()
-            .FilterDistinctUntilChanged(s =>
+            .FilterDistinctUntilChanged(s => GetWashingMachineWattage() > 10D)
+            .Where(s =>
             {
                 var resetStates = new List<WashingMachineState>
-                    {WashingMachineState.Idle, WashingMachineState.Clean, WashingMachineState.Finishing};
-
-                return GetWashingMachineWattage() > 10D &&
-                       resetStates.Contains(GetWashingMachineState());
+                    {WashingMachineState.Idle, WashingMachineState.Clean};//, WashingMachineState.Finishing};
+                return resetStates.Contains(GetWashingMachineState());
             })
             .Subscribe(_ =>
             {
@@ -37,26 +36,50 @@ public class Laundry : RoomApp
 
                 Entity(WashingMachineStatus).SetOption(WashingMachineState.Running);
             });
+            
 
-        Entities(WashingMachinePowerSensor, WashingMachineStatus)
+        //Entities(WashingMachinePowerSensor, WashingMachineStatus)
+        //    .StateChangesFiltered()
+        //    .FilterDistinctUntilChanged(s => GetWashingMachineWattage() < 5D && GetWashingMachineState() == WashingMachineState.Running)
+        //    .NDSameStateFor(new TimeSpan(0, 1, 0))
+        //    .Subscribe(_ =>
+        //    {
+        //        LogHistory("Washing machine finishing");
+        //        Entity(WashingMachineStatus).SetOption(WashingMachineState.Finishing);
+        //    });
+
+        var x = Entities(WashingMachineStatus, WashingMachinePowerSensor)
             .StateChangesFiltered()
-            .FilterDistinctUntilChanged(s => GetWashingMachineWattage() < 5D && GetWashingMachineState() == WashingMachineState.Running)
-            .NDSameStateFor(new TimeSpan(0, 1, 0))
-            .Subscribe(_ =>
+            //.Where(s => GetWashingMachineState() == WashingMachineState.Finishing)
+            .DistinctUntilChanged(s =>
             {
-                LogHistory("Washing machine finishing");
-                Entity(WashingMachineStatus).SetOption(WashingMachineState.Finishing);
-            });
-
-        Entities(WashingMachineStatus)
-            .StateChangesFiltered()
-            .Where(s => GetWashingMachineState() == WashingMachineState.Finishing)
-            .NDSameStateFor(new TimeSpan(0, 1, 0))
+                var result = GetWashingMachineState() == WashingMachineState.Running &&
+                             GetWashingMachineWattage() <= 3D;
+                return result;
+            })
+            .NDSameStateFor(new TimeSpan(0, 2, 0))
+            .Where(s =>
+            {
+                var result = GetWashingMachineState() == WashingMachineState.Running &&
+                             GetWashingMachineWattage() <= 3D;
+                return result;
+            })
             .Subscribe(_ =>
             {
                 LogHistory("Washing machine clean");
                 Entity(WashingMachineStatus).SetOption(WashingMachineState.Clean);
             });
+
+        //x.Subscribe(_ =>
+        //{
+        //    Log("WM State: {state}", GetWashingMachineState());
+        //    Log("WM Watt: {watt}", GetWashingMachineWattage());
+        //    var result = GetWashingMachineState() == WashingMachineState.Running && GetWashingMachineWattage() <= 3D;
+        //    Log("result: {result}", result);
+        //});
+
+
+
 
         Entities(WashingMachineDoorContact)
             .StateChangesFiltered()
@@ -74,7 +97,7 @@ public class Laundry : RoomApp
         Entities(WashingMachineStatus)
             .StateChangesFiltered()
             .Where(s =>
-                s.Old!.State == WashingMachineState.Finishing.ToString("F") &&
+                s.Old!.State == WashingMachineState.Running.ToString("F") &&
                 s.New!.State == WashingMachineState.Clean.ToString("F"))
             .Subscribe(_ =>
             {
@@ -133,7 +156,7 @@ public class Laundry : RoomApp
     {
         Idle,
         Running,
-        Finishing,
+        //Finishing,
         Clean
     }
 }

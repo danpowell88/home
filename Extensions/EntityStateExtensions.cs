@@ -34,6 +34,6 @@ public static class EntityStateExtensions
             throw new ArgumentNullException(nameof(source));
         }
 
-        return source.Where(criteria).DistinctUntilChanged(criteria);
+        return source.DistinctUntilChanged(criteria).Where(criteria);
     }
 }

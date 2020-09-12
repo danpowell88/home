@@ -13,7 +13,7 @@ public abstract class RoomApp : NetDaemonRxApp
 {
     protected virtual string RoomName => GetType().Name;
 
-    private readonly string? SingleRoomModeName = "";
+    private readonly string? SingleRoomModeName = "Toilet";
 
     // ReSharper disable once RedundantLogicalConditionalExpressionOperand
     protected virtual bool DebugMode => SingleRoomModeName == RoomName || false;
@@ -99,11 +99,13 @@ public abstract class RoomApp : NetDaemonRxApp
                 {
                     DebugLog("Room presence set on");
                     roomPresence.TurnOn();
+                    OccupancyOn();
                 }
                 else
                 {
                     DebugLog("Room presence set off");
                     roomPresence.TurnOff();
+                    OccupancyOff();
                 }
             });
 
@@ -133,24 +135,21 @@ public abstract class RoomApp : NetDaemonRxApp
         Observable.Merge(
                 Entities(EntityLocator.MotionSensors(RoomName)).StateChangesFiltered(),
                 Entities(EntityLocator.Lights(RoomName)).StateChangesFiltered().Where(OffToOn),
-                Entities(EntityLocator.EntryPoints(RoomName)).StateChangesFiltered()) // dont know if you are entering or leaving (so we'll just trigger the lights and timer)
+                Entities(EntityLocator.EntryPoints(RoomName))
+                    .StateChangesFiltered()) // dont know if you are entering or leaving (so we'll just trigger the lights and timer)
             .Synchronize()
             .Subscribe(s =>
             {
-                // only turn lights on if a the event isnt a motion sensor and the lights havent already been turned off (they should still be on unless for manual intervention)
-                if (s.New?.Attribute?.device_class != "motion" || s.New?.State != "on" ||
-                    this.AnyStatesAre(EntityLocator.Lights(RoomName), "on"))
-                {
-                    StartTimer();
-                    ToggleLights(true);
-                }
+                // start timer but dont turn on lights, they should already be on, and if not they have been manually overriden so 
+                // we dont want to turn them on
+                StartTimer();
             });
 
         // handles the case where someone manually switches the lights off (not by an automation, ie. by hand or HA GUI)
         // also when door is closed 
         Entities(EntityLocator.Lights(RoomName)).StateChangesFiltered().Where(OnToOff)
             .Synchronize()
-            .Subscribe(s => { StopTimer(); });
+            .Subscribe(s => { CancelTimer(); });
     }
 
     private IObservable<(EntityState Old, EntityState New)> GetTimerChanges()
@@ -397,6 +396,13 @@ public abstract class RoomApp : NetDaemonRxApp
         DebugLog("Stopping timer");
 
         CallService("timer", "finish", new { entity_id = EntityLocator.TimerEntityName(RoomName) });
+    }
+
+    public void CancelTimer()
+    {
+        DebugLog("Cancelling timer");
+
+        CallService("timer", "cancel", new { entity_id = EntityLocator.TimerEntityName(RoomName) });
     }
 
     public void ToggleLights(bool on)

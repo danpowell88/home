@@ -11,7 +11,7 @@ public class Gym : RoomApp
     private const string BikeFanSwitch = "switch.gym_bike_fan";
     private const string WeightFanSwitch = "switch.gym_weights_fan";
     private const string FanButton = "sensor.gym_switch_click";
-    private const decimal FanTriggerTemp = 25;
+    private const double FanTriggerTemp = 25;
 
     public override void Initialize()
     {
@@ -31,8 +31,8 @@ public class Gym : RoomApp
         Entity(Climate!)
             .StateChangesFiltered()
             .FilterDistinctUntilChanged(s =>
-                (decimal?)s.Old!.State! < FanTriggerTemp &&
-                (decimal?)s.New!.State! >= FanTriggerTemp &&
+                (double?)s.Old!.State! < FanTriggerTemp &&
+                (double?)s.New!.State! >= FanTriggerTemp &&
                 State(Training!)!.State == "on")
             .Subscribe(_ =>
             {
