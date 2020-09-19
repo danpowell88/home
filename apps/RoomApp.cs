@@ -13,7 +13,7 @@ public abstract class RoomApp : NetDaemonRxApp
 {
     protected virtual string RoomName => GetType().Name;
 
-    private readonly string? SingleRoomModeName = "Toilet";
+    private readonly string? SingleRoomModeName = "";
 
     // ReSharper disable once RedundantLogicalConditionalExpressionOperand
     protected virtual bool DebugMode => SingleRoomModeName == RoomName || false;
