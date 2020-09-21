@@ -81,7 +81,7 @@ public abstract class RoomApp : NetDaemonRxApp
         var powerSensors = GetPowerSensors();
         var workstations = GetWorkstations();
         var mediaPlayers = GetMediaPlayers();
-        var timerChanges = GetTimerChanges();
+        var motionSensors = Entities(EntityLocator.MotionSensors(RoomName)).StateChangesFiltered().Where(OffToOn);
 
         Observable
             .Merge(
@@ -89,7 +89,7 @@ public abstract class RoomApp : NetDaemonRxApp
                 powerSensors,
                 workstations,
                 mediaPlayers,
-                timerChanges)
+                motionSensors)
             .Synchronize()
             .Subscribe(s =>
             {
@@ -133,7 +133,7 @@ public abstract class RoomApp : NetDaemonRxApp
     {
         // When motion is detected or light is turned on start timer and toggle lights on (adhering to automated lighting rules) 
         Observable.Merge(
-                Entities(EntityLocator.MotionSensors(RoomName)).StateChangesFiltered(),
+                Entities(EntityLocator.MotionSensors(RoomName)).StateChangesFiltered().Where(OnToOff),
                 Entities(EntityLocator.Lights(RoomName)).StateChangesFiltered().Where(OffToOn),
                 Entities(EntityLocator.EntryPoints(RoomName))
                     .StateChangesFiltered()) // dont know if you are entering or leaving (so we'll just trigger the lights and timer)
