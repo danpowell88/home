@@ -17,9 +17,8 @@ public class Gym : RoomApp
     {
         Entity(Training!)
             .StateChangesFiltered()
-            .FilterDistinctUntilChanged(s =>
-                (s.New!.State ?? 0L) >= s.New.Attribute!.active_threshold &&
-                State(Climate!)!.State >= FanTriggerTemp)
+            .DistinctUntilChanged(s => (s.New!.State ?? 0L) >= s.New.Attribute!.active_threshold)
+            .Where(s => (s.New!.State ?? 0L) >= s.New.Attribute!.active_threshold && State(Climate!)!.State >= FanTriggerTemp)
             .NDSameStateFor(TimeSpan.FromMinutes(1))
             .Subscribe(_ =>
             {
@@ -30,13 +29,22 @@ public class Gym : RoomApp
 
         Entity(Climate!)
             .StateChangesFiltered()
-            .FilterDistinctUntilChanged(s =>
+            .DistinctUntilChanged(s => 
                 (double?)s.Old!.State! < FanTriggerTemp &&
-                (double?)s.New!.State! >= FanTriggerTemp &&
-                State(Training!)!.State == "on")
+                (double?)s.New!.State! >= FanTriggerTemp)
+            .Where(s =>
+            {
+                var fantrigger = (double?) s.Old!.State! < FanTriggerTemp &&
+                                 (double?) s.New!.State! >= FanTriggerTemp;
+
+                var training = State(Training!)!;
+
+                return fantrigger && training.State == training.Attribute!.active_threshold;
+
+            })
             .Subscribe(_ =>
             {
-                LogHistory("Bike training stopped");
+                LogHistory("Bike training climate");
                 BikeTrainingAction();
             });
 

@@ -21,7 +21,7 @@ public class Media : RoomApp
             .Where(s =>
                 s.New!.State == "playing"
                 && s.New.Attribute!.media_content_type == "movie")
-            .NDSameStateFor(TimeSpan.FromSeconds(10))
+            .NDSameStateFor(TimeSpan.FromMinutes(5))
             .Subscribe(_ =>
             {
                 LogHistory("Turn off all lights");
