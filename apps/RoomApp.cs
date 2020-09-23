@@ -82,6 +82,7 @@ public abstract class RoomApp : NetDaemonRxApp
         var workstations = GetWorkstations();
         var mediaPlayers = GetMediaPlayers();
         var motionSensors = Entities(EntityLocator.MotionSensors(RoomName)).StateChangesFiltered().Where(OffToOn);
+        var timer = GetTimerCompletedEvents();
 
         Observable
             .Merge(
@@ -89,7 +90,8 @@ public abstract class RoomApp : NetDaemonRxApp
                 powerSensors,
                 workstations,
                 mediaPlayers,
-                motionSensors)
+                motionSensors,
+                timer)
             .Synchronize()
             .Subscribe(s =>
             {
@@ -152,11 +154,11 @@ public abstract class RoomApp : NetDaemonRxApp
             .Subscribe(s => { CancelTimer(); });
     }
 
-    private IObservable<(EntityState Old, EntityState New)> GetTimerChanges()
+    private IObservable<(EntityState Old, EntityState New)> GetTimerCompletedEvents()
     {
         return EventChanges
             .Synchronize()
-            .Where(e => (e.Event == "timer.finished" || e.Event == "timer.started") && e.Data!.entity_id == EntityLocator.TimerEntityName(RoomName))
+            .Where(e => (e.Event == "timer.finished") && e.Data!.entity_id == EntityLocator.TimerEntityName(RoomName))
             .Select<RxEvent, (EntityState Old, EntityState New)>(e => (
                 new EntityState {EntityId = e.Data!.entity_id, State = e.Event == "timer.finished" ? "on" : "off"},
                 new EntityState { EntityId = e.Data!.entity_id, State = e.Event == "timer.finished" ? "off" : "on" }));

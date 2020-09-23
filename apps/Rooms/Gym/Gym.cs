@@ -22,8 +22,13 @@ public class Gym : RoomApp
             .NDSameStateFor(TimeSpan.FromMinutes(1))
             .Subscribe(_ =>
             {
-                LogHistory("Bike training");
-                BikeTrainingAction();
+                var training = State(Training!)!;
+
+                if (training.State >= training.Attribute!.active_threshold)
+                {
+                    LogHistory("Bike training");
+                    BikeTrainingAction();
+                }
             });
 
 
@@ -39,13 +44,17 @@ public class Gym : RoomApp
 
                 var training = State(Training!)!;
 
-                return fantrigger && training.State == training.Attribute!.active_threshold;
+                return fantrigger && training.State >= training.Attribute!.active_threshold;
 
             })
             .Subscribe(_ =>
             {
-                LogHistory("Bike training climate");
-                BikeTrainingAction();
+                var training = State(Training!)!;
+                if (training.State >= training.Attribute!.active_threshold)
+                {
+                    LogHistory("Bike training climate");
+                    BikeTrainingAction();
+                }
             });
 
 
@@ -56,10 +65,13 @@ public class Gym : RoomApp
             .NDSameStateFor(TimeSpan.FromMinutes(2))
             .Subscribe(_ =>
             {
-                LogHistory("Bike training stopped");
-                NoBikeTrainingAction();
+                var training = State(Training!)!;
+                if (training.State < training.Attribute!.active_threshold)
+                {
+                    LogHistory("Bike training stopped");
+                    NoBikeTrainingAction();
+                }
             });
-
 
         Entity(FanButton!)
             .StateChangesFiltered()
