@@ -64,7 +64,7 @@ public abstract class RoomApp : NetDaemonRxApp
             DebugLog("Occupancy Timeout: {timeout} minute(s)", OccupancyTimeoutObserved.TotalMinutes);
 
             // lights and doors dont indicate occupancy themselves but should start a timeout
-            WireUpNonOccupancyMarkers();
+            WireUpNonOccupancyMarkers(roomPresence);
             WireUpOccupancyMarkers(roomPresence);
             SetupGenericAutomations();
             ReInitaliseRoomState(roomPresence);
@@ -82,7 +82,7 @@ public abstract class RoomApp : NetDaemonRxApp
         var workstations = GetWorkstations();
         var mediaPlayers = GetMediaPlayers();
         var motionSensors = Entities(EntityLocator.MotionSensors(RoomName)).StateChangesFiltered().Where(OffToOn);
-        var timer = GetTimerCompletedEvents();
+        var entryPoints = Entities(EntityLocator.EntryPoints(RoomName)).StateChangesFiltered();
 
         Observable
             .Merge(
@@ -91,13 +91,15 @@ public abstract class RoomApp : NetDaemonRxApp
                 workstations,
                 mediaPlayers,
                 motionSensors,
-                timer)
+                entryPoints
+            )
             .Synchronize()
             .Subscribe(s =>
             {
                 DebugLog("State change - {entity} - {from} - {to}", s.Old.EntityId, s.Old.State, s.New.State);
 
-                if (AnyOccupanyMarkers())
+                if(EntityLocator.EntryPoints(RoomName)(s.New) || 
+                   AnyOccupanyMarkers())
                 {
                     DebugLog("Room presence set on");
                     roomPresence.TurnOn();
@@ -131,7 +133,7 @@ public abstract class RoomApp : NetDaemonRxApp
         });
     }
 
-    private void WireUpNonOccupancyMarkers()
+    private void WireUpNonOccupancyMarkers(RxEntity roomPresence)
     {
         // When motion is detected or light is turned on start timer and toggle lights on (adhering to automated lighting rules) 
         Observable.Merge(
@@ -146,6 +148,15 @@ public abstract class RoomApp : NetDaemonRxApp
                 // we dont want to turn them on
                 StartTimer();
             });
+
+        GetTimerCompletedEvents().Subscribe(_ =>
+        {
+            if (!AnyOccupanyMarkers())
+            {
+                OccupancyOff();
+                roomPresence.TurnOff();
+            }
+        });
 
         // handles the case where someone manually switches the lights off (not by an automation, ie. by hand or HA GUI)
         // also when door is closed 
@@ -171,7 +182,7 @@ public abstract class RoomApp : NetDaemonRxApp
             .Where(s => s.New.State == "single")
             .Subscribe(_ =>
             {
-                if (_.New.LastChanged - DateTime.Now <= TimeSpan.FromSeconds(5))
+                if (_.Old.LastChanged - DateTime.Now <= TimeSpan.FromSeconds(5))
                 {
                     LogHistory("Turn everything off double click");
                     this.TurnEverythingOff();

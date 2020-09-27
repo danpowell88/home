@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -15,7 +16,12 @@ namespace Service
         {
             try
             {
-                Log.Logger = SerilogConfigurator.Configure().CreateLogger();
+                var logger = SerilogConfigurator.Configure()
+                    .WriteTo.Seq("http://192.168.1.63")
+                    .Enrich.WithProperty("ApplicationName", "NetDaemon")
+                    .CreateLogger();
+
+                Log.Logger = logger;
 
                 if (File.Exists(HassioConfigPath))
                     await ReadHassioConfig();

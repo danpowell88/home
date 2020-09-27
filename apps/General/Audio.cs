@@ -17,16 +17,17 @@ public class Audio : NetDaemonRxApp
 
         Entity("binary_sensor.bed_occupancy")
             .StateChangesFiltered()
+            .NDSameStateFor(TimeSpan.FromSeconds(10))
             .Synchronize()
             .Subscribe(_ =>
             {
-                LogHelper.Log(this,nameof(Audio), "Settings TTS volume due to bed occupancy");
+                LogHelper.Log(this, nameof(Audio), "Settings TTS volume due to bed occupancy");
                 this.SetTTSVolume();
             });
 
 
         this.SetTTSVolume();
 
-         base.Initialize();
+        base.Initialize();
     }
 }
