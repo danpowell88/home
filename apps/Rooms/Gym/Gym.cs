@@ -58,20 +58,20 @@ public class Gym : RoomApp
             });
 
 
-        Entity(Training!)
-            .StateChangesFiltered()
-            .FilterDistinctUntilChanged(s =>
-                (s.New!.State ?? 0L) < s.New.Attribute!.active_threshold)
-            .NDSameStateFor(TimeSpan.FromMinutes(2))
-            .Subscribe(_ =>
-            {
-                var training = State(Training!)!;
-                if (training.State < training.Attribute!.active_threshold)
-                {
-                    LogHistory("Bike training stopped");
-                    NoBikeTrainingAction();
-                }
-            });
+        //Entity(Training!)
+        //    .StateChangesFiltered()
+        //    .FilterDistinctUntilChanged(s =>
+        //        (s.New!.State ?? 0L) < s.New.Attribute!.active_threshold)
+        //    .NDSameStateFor(TimeSpan.FromMinutes(2))
+        //    .Subscribe(_ =>
+        //    {
+        //        var training = State(Training!)!;
+        //        if (training.State < training.Attribute!.active_threshold)
+        //        {
+        //            LogHistory("Bike training stopped");
+        //            NoBikeTrainingAction();
+        //        }
+        //    });
 
         Entity(FanButton!)
             .StateChangesFiltered()
